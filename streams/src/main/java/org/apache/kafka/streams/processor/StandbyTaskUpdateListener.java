@@ -1,5 +1,7 @@
 package org.apache.kafka.streams.processor;
 
+import org.apache.kafka.common.TopicPartition;
+
 public interface StandbyTaskUpdateListener {
 
     public enum SuspendReason {
