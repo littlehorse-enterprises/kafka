@@ -48,6 +48,7 @@ import org.apache.kafka.streams.errors.StreamsStoppedException;
 import org.apache.kafka.streams.errors.StreamsUncaughtExceptionHandler;
 import org.apache.kafka.streams.errors.UnknownStateStoreException;
 import org.apache.kafka.streams.internals.metrics.ClientMetrics;
+import org.apache.kafka.streams.processor.StandbyTaskUpdateListener;
 import org.apache.kafka.streams.processor.StateRestoreListener;
 import org.apache.kafka.streams.processor.StateStore;
 import org.apache.kafka.streams.processor.StreamPartitioner;
@@ -171,6 +172,8 @@ public class KafkaStreams implements AutoCloseable {
     private final long totalCacheSize;
     private final StreamStateListener streamStateListener;
     private final StateRestoreListener delegatingStateRestoreListener;
+
+    private final StandbyTaskUpdateListener delegatingStandbyUpdateListener;
     private final Map<Long, StreamThread.State> threadState;
     private final UUID processId;
     private final KafkaClientSupplier clientSupplier;
@@ -732,6 +735,24 @@ public class KafkaStreams implements AutoCloseable {
         }
     }
 
+    static final class DelegatingStandbyTaskUpdateListener implements StandbyTaskUpdateListener {
+
+        @Override
+        public void onTaskCreated(final TopicPartition topicPartition, final String storeName, final long earliestOffset, final long startingOffset, final long currentEndOffset) {
+            // TODO eduwer
+        }
+
+        @Override
+        public void onBatchRestored(final TopicPartition topicPartition, final String storeName, final long batchEndOffset, final long numRestored, final long currentEndOffset) {
+            // TODO eduwer
+        }
+
+        @Override
+        public void onTaskSuspended(final TopicPartition topicPartition, final String storeName, final long storeOffset, final long currentEndOffset, final SuspendReason reason) {
+            // TODO eduwer
+        }
+    }
+
     /**
      * Create a {@code KafkaStreams} instance.
      * <p>
@@ -929,6 +950,7 @@ public class KafkaStreams implements AutoCloseable {
         oldHandler = false;
         streamsUncaughtExceptionHandler = this::defaultStreamsUncaughtExceptionHandler;
         delegatingStateRestoreListener = new DelegatingStateRestoreListener();
+        delegatingStandbyUpdateListener = new DelegatingStandbyTaskUpdateListener();
 
         totalCacheSize = getTotalCacheSize(applicationConfigs);
         final int numStreamThreads = topologyMetadata.getNumStreamThreads(applicationConfigs);
@@ -984,6 +1006,7 @@ public class KafkaStreams implements AutoCloseable {
             cacheSizePerThread,
             stateDirectory,
             delegatingStateRestoreListener,
+            null,
             threadIdx,
             KafkaStreams.this::closeToError,
             streamsUncaughtExceptionHandler
