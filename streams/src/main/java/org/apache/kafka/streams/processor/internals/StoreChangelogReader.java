@@ -36,6 +36,7 @@ import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.StreamsConfig.InternalConfig;
 import org.apache.kafka.streams.errors.StreamsException;
 import org.apache.kafka.streams.errors.TaskCorruptedException;
+import org.apache.kafka.streams.processor.StandbyTaskUpdateListener;
 import org.apache.kafka.streams.processor.StateRestoreListener;
 import org.apache.kafka.streams.processor.TaskId;
 import org.apache.kafka.streams.processor.internals.ProcessorStateManager.StateStoreMetadata;
@@ -202,6 +203,8 @@ public class StoreChangelogReader implements ChangelogReader {
     private final Consumer<byte[], byte[]> restoreConsumer;
     private final StateRestoreListener stateRestoreListener;
 
+    private final StandbyTaskUpdateListener standbyTaskUpdateListener;
+
     private final boolean stateUpdaterEnabled;
 
     // source of the truth of the current registered changelogs;
@@ -222,13 +225,15 @@ public class StoreChangelogReader implements ChangelogReader {
                                 final LogContext logContext,
                                 final Admin adminClient,
                                 final Consumer<byte[], byte[]> restoreConsumer,
-                                final StateRestoreListener stateRestoreListener) {
+                                final StateRestoreListener stateRestoreListener,
+                                final StandbyTaskUpdateListener standbyTaskUpdateListener) {
         this.time = time;
         this.log = logContext.logger(StoreChangelogReader.class);
         this.state = ChangelogReaderState.ACTIVE_RESTORING;
         this.adminClient = adminClient;
         this.restoreConsumer = restoreConsumer;
         this.stateRestoreListener = stateRestoreListener;
+        this.standbyTaskUpdateListener = standbyTaskUpdateListener;
 
         this.stateUpdaterEnabled = InternalConfig.getStateUpdaterEnabled(config.originals());
 
@@ -672,6 +677,8 @@ public class StoreChangelogReader implements ChangelogReader {
                 } catch (final Exception e) {
                     throw new StreamsException("State restore listener failed on batch restored", e);
                 }
+            } else {
+                standbyTaskUpdateListener.onBatchRestored(partition, storeName, 0L, 0L, 0L);
             }
         }
 

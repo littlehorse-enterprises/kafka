@@ -84,6 +84,7 @@ import org.apache.kafka.streams.state.internals.OffsetCheckpoint;
 import org.apache.kafka.test.MockApiProcessor;
 import org.apache.kafka.test.MockClientSupplier;
 import org.apache.kafka.test.MockKeyValueStoreBuilder;
+import org.apache.kafka.test.MockStandbyTaskUpdateListener;
 import org.apache.kafka.test.MockStateRestoreListener;
 import org.apache.kafka.test.MockTimestampExtractor;
 import org.apache.kafka.test.StreamsTestUtils;
@@ -320,6 +321,7 @@ public class StreamThreadTest {
             0,
             stateDirectory,
             new MockStateRestoreListener(),
+            new MockStandbyTaskUpdateListener(),
             threadIdx,
             null,
             HANDLER
@@ -729,6 +731,7 @@ public class StreamThreadTest {
             0,
             stateDirectory,
             new MockStateRestoreListener(),
+            new MockStandbyTaskUpdateListener(),
             threadIdx,
             null,
             null
@@ -797,6 +800,7 @@ public class StreamThreadTest {
             0,
             stateDirectory,
             new MockStateRestoreListener(),
+            new MockStandbyTaskUpdateListener(),
             threadIdx,
             null,
             null
@@ -1979,6 +1983,7 @@ public class StreamThreadTest {
             0,
             stateDirectory,
             new MockStateRestoreListener(),
+            new MockStandbyTaskUpdateListener(),
             threadIdx,
             null,
             HANDLER
