@@ -679,6 +679,7 @@ public class StoreChangelogReader implements ChangelogReader {
                     throw new StreamsException("State restore listener failed on batch restored", e);
                 }
             } else {
+                //TODO eduwer proper values
                 standbyTaskUpdateListener.onBatchRestored(partition, storeName, 0L, 0L, 0L);
             }
         }
