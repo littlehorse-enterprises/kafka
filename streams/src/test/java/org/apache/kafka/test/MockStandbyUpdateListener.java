@@ -17,28 +17,28 @@
 package org.apache.kafka.test;
 
 import org.apache.kafka.common.TopicPartition;
-import org.apache.kafka.streams.processor.StandbyTaskUpdateListener;
+import org.apache.kafka.streams.processor.StandbyUpdateListener;
 
 import java.util.HashMap;
 import java.util.Map;
 
-public class MockStandbyTaskUpdateListener implements StandbyTaskUpdateListener {
+public class MockStandbyUpdateListener implements StandbyUpdateListener {
 
     public final Map<String, String> storeNameCalledUpdate = new HashMap<>();
     public static final String UPDATE_BATCH = "update_batch";
 
     @Override
-    public void onTaskCreated(TopicPartition topicPartition, String storeName, long earliestOffset, long startingOffset, long currentEndOffset) {
+    public void onUpdateStart(TopicPartition topicPartition, String storeName, long earliestOffset, long startingOffset, long currentEndOffset) {
 
     }
 
     @Override
-    public void onBatchRestored(TopicPartition topicPartition, String storeName, long batchEndOffset, long numRestored, long currentEndOffset) {
+    public void onBatchUpdated(TopicPartition topicPartition, String storeName, long batchEndOffset, long numRestored, long currentEndOffset) {
         storeNameCalledUpdate.put(UPDATE_BATCH, storeName);
     }
 
     @Override
-    public void onTaskSuspended(TopicPartition topicPartition, String storeName, long storeOffset, long currentEndOffset, SuspendReason reason) {
+    public void onUpdateSuspended(TopicPartition topicPartition, String storeName, long storeOffset, long currentEndOffset, SuspendReason reason) {
 
     }
 }

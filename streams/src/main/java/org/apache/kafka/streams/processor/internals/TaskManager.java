@@ -36,6 +36,7 @@ import org.apache.kafka.streams.errors.TaskCorruptedException;
 import org.apache.kafka.streams.errors.TaskIdFormatException;
 import org.apache.kafka.streams.errors.TaskMigratedException;
 import org.apache.kafka.streams.internals.StreamsConfigUtils.ProcessingMode;
+import org.apache.kafka.streams.processor.StandbyUpdateListener;
 import org.apache.kafka.streams.processor.TaskId;
 import org.apache.kafka.streams.processor.internals.StateDirectory.TaskDirectory;
 import org.apache.kafka.streams.processor.internals.Task.State;
@@ -98,6 +99,8 @@ public class TaskManager {
     private final StandbyTaskCreator standbyTaskCreator;
     private final StateUpdater stateUpdater;
 
+    private final StandbyUpdateListener standbyTaskUpdateListener;
+
     TaskManager(final Time time,
                 final ChangelogReader changelogReader,
                 final UUID processId,
@@ -108,7 +111,8 @@ public class TaskManager {
                 final TopologyMetadata topologyMetadata,
                 final Admin adminClient,
                 final StateDirectory stateDirectory,
-                final StateUpdater stateUpdater) {
+                final StateUpdater stateUpdater,
+                final StandbyUpdateListener standbyTaskUpdateListener) {
         this.time = time;
         this.processId = processId;
         this.logPrefix = logPrefix;
@@ -119,6 +123,7 @@ public class TaskManager {
         this.activeTaskCreator = activeTaskCreator;
         this.standbyTaskCreator = standbyTaskCreator;
         this.processingMode = topologyMetadata.processingMode();
+        this.standbyTaskUpdateListener = standbyTaskUpdateListener;
 
         final LogContext logContext = new LogContext(logPrefix);
         this.log = logContext.logger(getClass());
@@ -404,7 +409,9 @@ public class TaskManager {
                                 final Map<TaskId, Set<TopicPartition>> standbyTasksToCreate) {
         final Collection<Task> newActiveTasks = activeTaskCreator.createTasks(mainConsumer, activeTasksToCreate);
         final Collection<Task> newStandbyTasks = standbyTaskCreator.createTasks(standbyTasksToCreate);
+        newStandbyTasks.stream().findFirst().get().inputPartitions().forEach(topicPartition -> {
 
+        });
         if (stateUpdater == null) {
             tasks.addActiveTasks(newActiveTasks);
             tasks.addStandbyTasks(newStandbyTasks);
@@ -678,7 +685,15 @@ public class TaskManager {
     }
 
     private StreamTask convertStandbyToActive(final StandbyTask standbyTask, final Set<TopicPartition> partitions) {
-        return activeTaskCreator.createActiveTaskFromStandby(standbyTask, partitions, mainConsumer);
+        final StreamTask streamTask = activeTaskCreator.createActiveTaskFromStandby(standbyTask, partitions, mainConsumer);
+        final ProcessorStateManager stateManager = standbyTask.stateMgr;
+        for (final TopicPartition partition : partitions) {
+            final ProcessorStateManager.StateStoreMetadata storeMetadata = stateManager.storeMetadata(partition);
+            if (storeMetadata != null){
+                standbyTaskUpdateListener.onUpdateSuspended(partition, storeMetadata.store().name(), 0L, storeMetadata.offset(), StandbyUpdateListener.SuspendReason.PROMOTED);
+            }
+        }
+        return streamTask;
     }
 
     /**

@@ -233,7 +233,8 @@ public class TaskManagerTest {
             topologyMetadata,
             adminClient,
             stateDirectory,
-            stateUpdaterEnabled ? stateUpdater : null
+            stateUpdaterEnabled ? stateUpdater : null,
+            null
         );
         taskManager.setMainConsumer(consumer);
         return taskManager;
