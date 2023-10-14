@@ -48,7 +48,7 @@ import org.apache.kafka.streams.errors.StreamsStoppedException;
 import org.apache.kafka.streams.errors.StreamsUncaughtExceptionHandler;
 import org.apache.kafka.streams.errors.UnknownStateStoreException;
 import org.apache.kafka.streams.internals.metrics.ClientMetrics;
-import org.apache.kafka.streams.processor.StandbyTaskUpdateListener;
+import org.apache.kafka.streams.processor.StandbyUpdateListener;
 import org.apache.kafka.streams.processor.StateRestoreListener;
 import org.apache.kafka.streams.processor.StateStore;
 import org.apache.kafka.streams.processor.StreamPartitioner;
@@ -172,7 +172,7 @@ public class KafkaStreams implements AutoCloseable {
     private final StreamStateListener streamStateListener;
     private final StateRestoreListener delegatingStateRestoreListener;
 
-    private final StandbyTaskUpdateListener delegatingStandbyUpdateListener;
+    private final StandbyUpdateListener delegatingStandbyUpdateListener;
     private final Map<Long, StreamThread.State> threadState;
     private final UUID processId;
     private final KafkaClientSupplier clientSupplier;
@@ -182,6 +182,8 @@ public class KafkaStreams implements AutoCloseable {
     GlobalStreamThread globalStreamThread;
     private KafkaStreams.StateListener stateListener;
     private StateRestoreListener globalStateRestoreListener;
+
+    private StandbyUpdateListener standbyTaskUpdateListener;
     private boolean oldHandler;
     private BiConsumer<Throwable, Boolean> streamsUncaughtExceptionHandler;
     private final Object changeThreadCount = new Object();
@@ -584,6 +586,20 @@ public class KafkaStreams implements AutoCloseable {
     }
 
     /**
+     * EXPERIMENTAL
+     */
+    public void setStandbyUpdateListener(final StandbyUpdateListener standbyTaskUpdateListener) {
+        synchronized (stateLock) {
+            if (state.hasNotStarted()) {
+                this.standbyTaskUpdateListener = standbyTaskUpdateListener;
+            } else {
+                throw new IllegalStateException("Can only set GlobalStateRestoreListener before calling start(). " +
+                        "Current state is: " + state);
+            }
+        }
+    }
+
+    /**
      * Get read-only handle on global metrics registry, including streams client's own metrics plus
      * its embedded producer, consumer and admin clients' metrics.
      *
@@ -745,21 +761,28 @@ public class KafkaStreams implements AutoCloseable {
         }
     }
 
-    static final class DelegatingStandbyTaskUpdateListener implements StandbyTaskUpdateListener {
+    final class DelegatingStandbyUpdateListener implements StandbyUpdateListener {
 
         @Override
-        public void onTaskCreated(final TopicPartition topicPartition, final String storeName, final long earliestOffset, final long startingOffset, final long currentEndOffset) {
+        public void onUpdateStart(final TopicPartition topicPartition, final String storeName, final long earliestOffset, final long startingOffset, final long currentEndOffset) {
+            if(standbyTaskUpdateListener != null){
+                standbyTaskUpdateListener.onUpdateStart(topicPartition, storeName, earliestOffset, startingOffset, currentEndOffset);
+            }
             // TODO eduwer
         }
 
         @Override
-        public void onBatchRestored(final TopicPartition topicPartition, final String storeName, final long batchEndOffset, final long numRestored, final long currentEndOffset) {
-            // TODO eduwer
+        public void onBatchUpdated(final TopicPartition topicPartition, final String storeName, final long batchEndOffset, final long numRestored, final long currentEndOffset) {
+            if(standbyTaskUpdateListener != null){
+                standbyTaskUpdateListener.onBatchUpdated(topicPartition, storeName, batchEndOffset, numRestored, currentEndOffset);
+            }
         }
 
         @Override
-        public void onTaskSuspended(final TopicPartition topicPartition, final String storeName, final long storeOffset, final long currentEndOffset, final SuspendReason reason) {
-            // TODO eduwer
+        public void onUpdateSuspended(final TopicPartition topicPartition, final String storeName, final long storeOffset, final long currentEndOffset, final SuspendReason reason) {
+            if(standbyTaskUpdateListener != null){
+                standbyTaskUpdateListener.onUpdateSuspended(topicPartition, storeName, storeOffset, currentEndOffset, reason);
+            }
         }
     }
 
@@ -960,7 +983,7 @@ public class KafkaStreams implements AutoCloseable {
         oldHandler = false;
         streamsUncaughtExceptionHandler = this::defaultStreamsUncaughtExceptionHandler;
         delegatingStateRestoreListener = new DelegatingStateRestoreListener();
-        delegatingStandbyUpdateListener = new DelegatingStandbyTaskUpdateListener();
+        delegatingStandbyUpdateListener = new DelegatingStandbyUpdateListener();
 
         totalCacheSize = getTotalCacheSize(applicationConfigs);
         final int numStreamThreads = topologyMetadata.getNumStreamThreads(applicationConfigs);
@@ -1016,7 +1039,7 @@ public class KafkaStreams implements AutoCloseable {
             cacheSizePerThread,
             stateDirectory,
             delegatingStateRestoreListener,
-            null,
+            delegatingStandbyUpdateListener,
             threadIdx,
             KafkaStreams.this::closeToError,
             streamsUncaughtExceptionHandler

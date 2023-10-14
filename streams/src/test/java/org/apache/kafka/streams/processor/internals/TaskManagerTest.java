@@ -243,7 +243,8 @@ public class TaskManagerTest {
             adminClient,
             stateDirectory,
             stateUpdaterEnabled ? stateUpdater : null,
-            processingThreadsEnabled ? schedulingTaskManager : null
+            processingThreadsEnabled ? schedulingTaskManager : null,
+            null
         );
         taskManager.setMainConsumer(consumer);
         return taskManager;

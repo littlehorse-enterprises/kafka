@@ -84,7 +84,7 @@ import org.apache.kafka.streams.state.internals.OffsetCheckpoint;
 import org.apache.kafka.test.MockApiProcessor;
 import org.apache.kafka.test.MockClientSupplier;
 import org.apache.kafka.test.MockKeyValueStoreBuilder;
-import org.apache.kafka.test.MockStandbyTaskUpdateListener;
+import org.apache.kafka.test.MockStandbyUpdateListener;
 import org.apache.kafka.test.MockStateRestoreListener;
 import org.apache.kafka.test.MockTimestampExtractor;
 import org.apache.kafka.test.StreamsTestUtils;
@@ -321,7 +321,7 @@ public class StreamThreadTest {
             0,
             stateDirectory,
             new MockStateRestoreListener(),
-            new MockStandbyTaskUpdateListener(),
+            new MockStandbyUpdateListener(),
             threadIdx,
             null,
             HANDLER
@@ -731,7 +731,7 @@ public class StreamThreadTest {
             0,
             stateDirectory,
             new MockStateRestoreListener(),
-            new MockStandbyTaskUpdateListener(),
+            new MockStandbyUpdateListener(),
             threadIdx,
             null,
             null
@@ -800,7 +800,7 @@ public class StreamThreadTest {
             0,
             stateDirectory,
             new MockStateRestoreListener(),
-            new MockStandbyTaskUpdateListener(),
+            new MockStandbyUpdateListener(),
             threadIdx,
             null,
             null
@@ -1038,6 +1038,7 @@ public class StreamThreadTest {
             null,
             new Tasks(new LogContext()),
             topologyMetadata,
+            null,
             null,
             null,
             null,
@@ -1983,7 +1984,7 @@ public class StreamThreadTest {
             0,
             stateDirectory,
             new MockStateRestoreListener(),
-            new MockStandbyTaskUpdateListener(),
+            new MockStandbyUpdateListener(),
             threadIdx,
             null,
             HANDLER
@@ -3626,7 +3627,7 @@ public class StreamThreadTest {
             null
         );
     }
-    
+
     private void runOnce() {
         if (processingThreadsEnabled) {
             thread.runOnceWithProcessingThreads();

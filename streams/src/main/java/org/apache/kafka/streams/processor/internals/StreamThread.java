@@ -43,7 +43,7 @@ import org.apache.kafka.streams.errors.StreamsException;
 import org.apache.kafka.streams.errors.TaskCorruptedException;
 import org.apache.kafka.streams.errors.TaskMigratedException;
 import org.apache.kafka.streams.internals.metrics.ClientMetrics;
-import org.apache.kafka.streams.processor.StandbyTaskUpdateListener;
+import org.apache.kafka.streams.processor.StandbyUpdateListener;
 import org.apache.kafka.streams.processor.StateRestoreListener;
 import org.apache.kafka.streams.processor.TaskId;
 import org.apache.kafka.streams.processor.internals.assignment.AssignorError;
@@ -348,7 +348,7 @@ public class StreamThread extends Thread {
                                       final long cacheSizeBytes,
                                       final StateDirectory stateDirectory,
                                       final StateRestoreListener userStateRestoreListener,
-                                      final StandbyTaskUpdateListener userStandbyUpdateListener,
+                                      final StandbyUpdateListener userStandbyUpdateListener,
                                       final int threadIdx,
                                       final Runnable shutdownErrorHook,
                                       final BiConsumer<Throwable, Boolean> streamsUncaughtExceptionHandler) {
@@ -428,7 +428,8 @@ public class StreamThread extends Thread {
             adminClient,
             stateDirectory,
             stateUpdater,
-            schedulingTaskManager
+            schedulingTaskManager,
+            maybeCreateAndStartStateUpdater(stateUpdaterEnabled, streamsMetrics, config, changelogReader, topologyMetadata, time, clientId, threadIdx),
         );
         referenceContainer.taskManager = taskManager;
 

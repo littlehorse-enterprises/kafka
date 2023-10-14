@@ -98,7 +98,6 @@ class StandbyTaskCreator {
                     streamsMetrics,
                     dummyCache
                 );
-
                 createdTasks.add(createStandbyTask(taskId, partitions, topology, stateManager, context));
             } else {
                 log.trace(
@@ -136,7 +135,6 @@ class StandbyTaskCreator {
             dummyCache,
             streamTask.processorContext
         );
-
         log.trace("Created standby task {} from recycled active task with assigned partitions {}", task.id, inputPartitions);
         createTaskSensor.record();
         return task;

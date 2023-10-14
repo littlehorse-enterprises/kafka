@@ -18,7 +18,7 @@ package org.apache.kafka.streams.processor;
 
 import org.apache.kafka.common.TopicPartition;
 
-public interface StandbyTaskUpdateListener {
+public interface StandbyUpdateListener {
 
     enum SuspendReason {
         MIGRATED,
@@ -34,7 +34,7 @@ public interface StandbyTaskUpdateListener {
      * @param startingOffset   the offset from which the Standby Task starts watching.
      * @param currentEndOffset the current latest offset on the associated changelog partition.
      */
-    void onTaskCreated(final TopicPartition topicPartition,
+    void onUpdateStart(final TopicPartition topicPartition,
                        final String storeName,
                        final long earliestOffset,
                        final long startingOffset,
@@ -56,7 +56,7 @@ public interface StandbyTaskUpdateListener {
      * @param numRestored the total number of records restored in this batch for this TopicPartition
      * @param currentEndOffset the current end offset of the changelog topic partition.
      */
-    void onBatchRestored(final TopicPartition topicPartition,
+    void onBatchUpdated(final TopicPartition topicPartition,
                          final String storeName,
                          final long batchEndOffset,
                          final long numRestored,
@@ -73,9 +73,9 @@ public interface StandbyTaskUpdateListener {
      * @param currentEndOffset the current end offset of the changelog topic partition.
      * @param reason is the reason why the standby task was suspended.
      */
-    void onTaskSuspended(final TopicPartition topicPartition,
-                         final String storeName,
-                         final long storeOffset,
-                         final long currentEndOffset,
-                         final SuspendReason reason);
+    void onUpdateSuspended(final TopicPartition topicPartition,
+                           final String storeName,
+                           final long storeOffset,
+                           final long currentEndOffset,
+                           final SuspendReason reason);
 }

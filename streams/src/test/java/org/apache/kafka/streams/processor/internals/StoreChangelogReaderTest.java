@@ -41,7 +41,7 @@ import org.apache.kafka.streams.processor.StateStore;
 import org.apache.kafka.streams.processor.TaskId;
 import org.apache.kafka.streams.processor.internals.ProcessorStateManager.StateStoreMetadata;
 import org.apache.kafka.common.utils.LogCaptureAppender;
-import org.apache.kafka.test.MockStandbyTaskUpdateListener;
+import org.apache.kafka.test.MockStandbyUpdateListener;
 import org.apache.kafka.test.MockStateRestoreListener;
 import org.apache.kafka.test.StreamsTestUtils;
 import org.easymock.EasyMock;
@@ -131,7 +131,7 @@ public class StoreChangelogReaderTest extends EasyMockSupport {
     private final MockTime time = new MockTime();
     private final MockStateRestoreListener callback = new MockStateRestoreListener();
 
-    private final MockStandbyTaskUpdateListener standbyUpdateListener = new MockStandbyTaskUpdateListener();
+    private final MockStandbyUpdateListener standbyUpdateListener = new MockStandbyUpdateListener();
     private final KafkaException kaboom = new KafkaException("KABOOM!");
     private final MockStateRestoreListener exceptionCallback = new MockStateRestoreListener() {
         @Override
@@ -914,11 +914,13 @@ public class StoreChangelogReaderTest extends EasyMockSupport {
         assertEquals(kaboom, thrown.getCause());
     }
 
+    //WIP
     @Test
     public void shouldOnlyRestoreStandbyChangelogInUpdateStandbyState() {
         final Map<TaskId, Task> mockTasks = mock(Map.class);
         EasyMock.expect(mockTasks.get(null)).andReturn(mock(Task.class)).anyTimes();
         EasyMock.expect(mockTasks.containsKey(null)).andReturn(true).anyTimes();
+        EasyMock.expect(storeMetadata.offset()).andReturn(4L).anyTimes();
         EasyMock.replay(mockTasks, standbyStateManager, storeMetadata, store);
 
         consumer.updateBeginningOffsets(Collections.singletonMap(tp, 5L));
@@ -953,12 +955,15 @@ public class StoreChangelogReaderTest extends EasyMockSupport {
         assertTrue(changelogReader.changelogMetadata(tp).bufferedRecords().isEmpty());
     }
 
+    //WIP
     @Test
     public void shouldNotUpdateLimitForNonSourceStandbyChangelog() {
         final Map<TaskId, Task> mockTasks = mock(Map.class);
         EasyMock.expect(mockTasks.get(null)).andReturn(mock(Task.class)).anyTimes();
         EasyMock.expect(mockTasks.containsKey(null)).andReturn(true).anyTimes();
         EasyMock.expect(standbyStateManager.changelogAsSource(tp)).andReturn(false).anyTimes();
+        EasyMock.expect(storeMetadata.offset()).andReturn(4L).anyTimes();
+
         EasyMock.replay(mockTasks, standbyStateManager, storeMetadata, store);
 
         final MockAdminClient adminClient = new MockAdminClient() {
@@ -1007,12 +1012,14 @@ public class StoreChangelogReaderTest extends EasyMockSupport {
         assertNull(callback.storeNameCalledStates.get(RESTORE_BATCH));
     }
 
+    //WIP
     @Test
     public void shouldRestoreToLimitInStandbyState() {
         final Map<TaskId, Task> mockTasks = mock(Map.class);
         EasyMock.expect(mockTasks.get(null)).andReturn(mock(Task.class)).anyTimes();
         EasyMock.expect(mockTasks.containsKey(null)).andReturn(true).anyTimes();
         EasyMock.expect(standbyStateManager.changelogAsSource(tp)).andReturn(true).anyTimes();
+        EasyMock.expect(storeMetadata.offset()).andReturn(4L).anyTimes();
         EasyMock.replay(mockTasks, standbyStateManager, storeMetadata, store);
 
         final long now = time.milliseconds();

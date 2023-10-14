@@ -36,7 +36,7 @@ import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.StreamsConfig.InternalConfig;
 import org.apache.kafka.streams.errors.StreamsException;
 import org.apache.kafka.streams.errors.TaskCorruptedException;
-import org.apache.kafka.streams.processor.StandbyTaskUpdateListener;
+import org.apache.kafka.streams.processor.StandbyUpdateListener;
 import org.apache.kafka.streams.processor.StateRestoreListener;
 import org.apache.kafka.streams.processor.TaskId;
 import org.apache.kafka.streams.processor.internals.ProcessorStateManager.StateStoreMetadata;
@@ -203,7 +203,7 @@ public class StoreChangelogReader implements ChangelogReader {
     private final Consumer<byte[], byte[]> restoreConsumer;
     private final StateRestoreListener stateRestoreListener;
 
-    private final StandbyTaskUpdateListener standbyTaskUpdateListener;
+    private final StandbyUpdateListener standbyUpdateListener;
 
     private final boolean stateUpdaterEnabled;
 
@@ -226,14 +226,14 @@ public class StoreChangelogReader implements ChangelogReader {
                                 final Admin adminClient,
                                 final Consumer<byte[], byte[]> restoreConsumer,
                                 final StateRestoreListener stateRestoreListener,
-                                final StandbyTaskUpdateListener standbyTaskUpdateListener) {
+                                final StandbyUpdateListener standbyUpdateListener) {
         this.time = time;
         this.log = logContext.logger(StoreChangelogReader.class);
         this.state = ChangelogReaderState.ACTIVE_RESTORING;
         this.adminClient = adminClient;
         this.restoreConsumer = restoreConsumer;
         this.stateRestoreListener = stateRestoreListener;
-        this.standbyTaskUpdateListener = standbyTaskUpdateListener;
+        this.standbyUpdateListener = standbyUpdateListener;
 
         this.stateUpdaterEnabled = InternalConfig.getStateUpdaterEnabled(config.originals());
 
@@ -677,9 +677,11 @@ public class StoreChangelogReader implements ChangelogReader {
                 } catch (final Exception e) {
                     throw new StreamsException("State restore listener failed on batch restored", e);
                 }
-            } else {
-                //TODO eduwer proper values
-                standbyTaskUpdateListener.onBatchRestored(partition, storeName, 0L, 0L, 0L);
+            } else if (changelogMetadata.stateManager.taskType() == TaskType.STANDBY) {
+                // WIP - we should ask this endOffset to StateManager
+                Map<TopicPartition, Long> topicPartitionLongMap = restoreConsumer.endOffsets(Collections.singleton(partition));
+                Long endOffset = topicPartitionLongMap.getOrDefault(partition, -1L);
+                standbyUpdateListener.onBatchUpdated(partition, storeName, currentOffset, numRecords, endOffset);
             }
         }
 
@@ -990,29 +992,28 @@ public class StoreChangelogReader implements ChangelogReader {
 
         // do not trigger restore listener if we are processing standby tasks
         for (final ChangelogMetadata changelogMetadata : newPartitionsToRestore) {
-            if (changelogMetadata.stateManager.taskType() == Task.TaskType.ACTIVE) {
-                final StateStoreMetadata storeMetadata = changelogMetadata.storeMetadata;
-                final TopicPartition partition = storeMetadata.changelogPartition();
-                final String storeName = storeMetadata.store().name();
+            final StateStoreMetadata storeMetadata = changelogMetadata.storeMetadata;
+            final TopicPartition partition = storeMetadata.changelogPartition();
+            final String storeName = storeMetadata.store().name();
 
-                long startOffset = 0L;
-                try {
-                    startOffset = restoreConsumer.position(partition);
-                } catch (final TimeoutException swallow) {
-                    // if we cannot find the starting position at the beginning, just use the default 0L
-                } catch (final KafkaException e) {
-                    // this also includes InvalidOffsetException, which should not happen under normal
-                    // execution, hence it is also okay to wrap it as fatal StreamsException
-                    throw new StreamsException("Restore consumer get unexpected error trying to get the position " +
+            long startOffset = 0L;
+            try {
+                startOffset = restoreConsumer.position(partition);
+            } catch (final TimeoutException swallow) {
+                // if we cannot find the starting position at the beginning, just use the default 0L
+            } catch (final KafkaException e) {
+                // this also includes InvalidOffsetException, which should not happen under normal
+                // execution, hence it is also okay to wrap it as fatal StreamsException
+                throw new StreamsException("Restore consumer get unexpected error trying to get the position " +
                         " of " + partition, e);
-                }
+            }
 
+            if (changelogMetadata.stateManager.taskType() == Task.TaskType.ACTIVE) {
                 try {
                     stateRestoreListener.onRestoreStart(partition, storeName, startOffset, changelogMetadata.restoreEndOffset);
                 } catch (final Exception e) {
                     throw new StreamsException("State restore listener failed on batch restored", e);
                 }
-
                 final TaskId taskId = changelogMetadata.stateManager.taskId();
                 final Task task = tasks.get(taskId);
                 // if the log is truncated between when we get the log end offset and when we get the
@@ -1020,6 +1021,8 @@ public class StoreChangelogReader implements ChangelogReader {
                 // no records to restore; in this case we just initialize the sensor to zero
                 final long recordsToRestore = Math.max(changelogMetadata.restoreEndOffset - startOffset, 0L);
                 task.recordRestoration(time, recordsToRestore, true);
+            }else {
+                standbyUpdateListener.onUpdateStart(partition, storeName, -1L, startOffset, changelogMetadata.restoreEndOffset);
             }
         }
     }
