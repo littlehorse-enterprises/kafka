@@ -409,9 +409,6 @@ public class TaskManager {
                                 final Map<TaskId, Set<TopicPartition>> standbyTasksToCreate) {
         final Collection<Task> newActiveTasks = activeTaskCreator.createTasks(mainConsumer, activeTasksToCreate);
         final Collection<Task> newStandbyTasks = standbyTaskCreator.createTasks(standbyTasksToCreate);
-        newStandbyTasks.stream().findFirst().get().inputPartitions().forEach(topicPartition -> {
-
-        });
         if (stateUpdater == null) {
             tasks.addActiveTasks(newActiveTasks);
             tasks.addStandbyTasks(newStandbyTasks);
