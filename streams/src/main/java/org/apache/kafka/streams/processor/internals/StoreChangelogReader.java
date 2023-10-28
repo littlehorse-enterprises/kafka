@@ -1020,7 +1020,7 @@ public class StoreChangelogReader implements ChangelogReader {
                 final long recordsToRestore = Math.max(changelogMetadata.restoreEndOffset - startOffset, 0L);
                 task.recordRestoration(time, recordsToRestore, true);
             } else {
-                standbyUpdateListener.onUpdateStart(partition, storeName, -1L, startOffset, 0L);
+                standbyUpdateListener.onUpdateStart(partition, storeName, -1L, startOffset, storeMetadata.endOffset());
             }
         }
     }
