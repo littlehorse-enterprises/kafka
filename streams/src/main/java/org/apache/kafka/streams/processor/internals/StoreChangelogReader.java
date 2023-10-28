@@ -52,7 +52,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.OptionalLong;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Function;
@@ -652,7 +651,7 @@ public class StoreChangelogReader implements ChangelogReader {
 
         if (numRecords != 0) {
             final List<ConsumerRecord<byte[], byte[]>> records = changelogMetadata.bufferedRecords.subList(0, numRecords);
-            stateManager.restore(storeMetadata, records);
+            stateManager.restore(storeMetadata, records, restoreConsumer.currentLag(partition).orElse(0L));
 
             // NOTE here we use removeRange of ArrayList in order to achieve efficiency with range shifting,
             // otherwise one-at-a-time removal or addition would be very costly; if all records are restored
@@ -680,9 +679,7 @@ public class StoreChangelogReader implements ChangelogReader {
                     throw new StreamsException("State restore listener failed on batch restored", e);
                 }
             } else if (changelogMetadata.stateManager.taskType() == TaskType.STANDBY) {
-                OptionalLong optionalLong = restoreConsumer.currentLag(partition);
-                Long endOffset = optionalLong.orElseGet(() -> 0L) + currentOffset;
-                standbyUpdateListener.onBatchUpdated(partition, storeName, task.id(), currentOffset, numRecords, endOffset);
+                standbyUpdateListener.onBatchUpdated(partition, storeName, task.id(), currentOffset, numRecords, storeMetadata.endOffset());
             }
         }
 
@@ -1022,7 +1019,7 @@ public class StoreChangelogReader implements ChangelogReader {
                 // no records to restore; in this case we just initialize the sensor to zero
                 final long recordsToRestore = Math.max(changelogMetadata.restoreEndOffset - startOffset, 0L);
                 task.recordRestoration(time, recordsToRestore, true);
-            }else {
+            } else {
                 standbyUpdateListener.onUpdateStart(partition, storeName, -1L, startOffset, 0L);
             }
         }

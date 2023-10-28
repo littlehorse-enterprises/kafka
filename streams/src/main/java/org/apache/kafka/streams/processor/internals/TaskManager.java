@@ -686,7 +686,7 @@ public class TaskManager {
         final ProcessorStateManager stateManager = standbyTask.stateMgr;
         for (final TopicPartition partition : partitions) {
             final ProcessorStateManager.StateStoreMetadata storeMetadata = stateManager.storeMetadata(partition);
-            if (storeMetadata != null){
+            if (storeMetadata != null) {
                 standbyTaskUpdateListener.onUpdateSuspended(partition, storeMetadata.store().name(), 0L, storeMetadata.offset(), StandbyUpdateListener.SuspendReason.PROMOTED);
             }
         }
