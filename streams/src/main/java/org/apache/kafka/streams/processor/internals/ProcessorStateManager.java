@@ -97,7 +97,8 @@ public class ProcessorStateManager implements StateManager {
         //      update blindly with the given offset
         private Long offset;
 
-        private Long endOffset;
+        // Will be updated on batch restored
+        private Long endOffset = 0L;
 
         // corrupted state store should not be included in checkpointing
         private boolean corrupted;
