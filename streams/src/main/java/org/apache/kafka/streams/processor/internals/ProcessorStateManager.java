@@ -97,6 +97,8 @@ public class ProcessorStateManager implements StateManager {
         //      update blindly with the given offset
         private Long offset;
 
+        private Long endOffset;
+
         // corrupted state store should not be included in checkpointing
         private boolean corrupted;
 
@@ -132,9 +134,17 @@ public class ProcessorStateManager implements StateManager {
             this.offset = offset;
         }
 
+        private void setEndOffset(final Long endOffset) {
+            this.endOffset = endOffset;
+        }
+
         // the offset is exposed to the changelog reader to determine if restoration is completed
         Long offset() {
             return this.offset;
+        }
+
+        Long endOffset() {
+            return this.endOffset;
         }
 
         TopicPartition changelogPartition() {
@@ -433,7 +443,7 @@ public class ProcessorStateManager implements StateManager {
     }
 
     // used by the changelog reader only
-    void restore(final StateStoreMetadata storeMetadata, final List<ConsumerRecord<byte[], byte[]>> restoreRecords) {
+    void restore(final StateStoreMetadata storeMetadata, final List<ConsumerRecord<byte[], byte[]>> restoreRecords, Long consumerLag) {
         if (!stores.containsValue(storeMetadata)) {
             throw new IllegalStateException("Restoring " + storeMetadata + " which is not registered in this state manager, " +
                 "this should not happen.");
@@ -457,6 +467,7 @@ public class ProcessorStateManager implements StateManager {
             }
 
             storeMetadata.setOffset(batchEndOffset);
+            storeMetadata.setEndOffset(consumerLag + batchEndOffset);
         }
     }
 
