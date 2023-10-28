@@ -256,7 +256,7 @@ public class ProcessorStateManagerTest {
             final StateStoreMetadata storeMetadata = stateMgr.storeMetadata(persistentStorePartition);
             assertThat(storeMetadata, notNullValue());
 
-            stateMgr.restore(storeMetadata, singletonList(consumerRecord), 0L); // TODO
+            stateMgr.restore(storeMetadata, singletonList(consumerRecord), 2L);
 
             assertThat(restoreCallback.restored.size(), is(1));
             assertTrue(restoreCallback.restored.contains(expectedKeyValue));
@@ -634,9 +634,10 @@ public class ProcessorStateManagerTest {
             assertThat(storeMetadata, notNullValue());
             assertThat(storeMetadata.offset(), equalTo(99L));
 
-            stateMgr.restore(storeMetadata, singletonList(consumerRecord), 0L); // TODO
+            stateMgr.restore(storeMetadata, singletonList(consumerRecord), 200L);
 
             assertThat(storeMetadata.offset(), equalTo(100L));
+            assertThat(storeMetadata.endOffset(), equalTo(300L));
 
             // should ignore irrelevant topic partitions
             stateMgr.updateChangelogOffsets(mkMap(
@@ -663,7 +664,7 @@ public class ProcessorStateManagerTest {
             final StateStoreMetadata storeMetadata = stateMgr.storeMetadata(persistentStorePartition);
             assertThat(storeMetadata, notNullValue());
 
-            stateMgr.restore(storeMetadata, singletonList(consumerRecord), 0L); // TODO
+            stateMgr.restore(storeMetadata, singletonList(consumerRecord), 200L);
 
             stateMgr.checkpoint();
 
@@ -807,7 +808,7 @@ public class ProcessorStateManagerTest {
     public void shouldThrowIfRestoringUnregisteredStore() {
         final ProcessorStateManager stateManager = getStateManager(Task.TaskType.ACTIVE);
 
-        assertThrows(IllegalStateException.class, () -> stateManager.restore(storeMetadata, Collections.emptyList(), 0L)); // TODO
+        assertThrows(IllegalStateException.class, () -> stateManager.restore(storeMetadata, Collections.emptyList(), 200L));
     }
 
     @SuppressWarnings("OptionalGetWithoutIsPresent")
@@ -873,7 +874,7 @@ public class ProcessorStateManagerTest {
         final StateStoreMetadata storeMetadata = stateMgr.storeMetadata(persistentStorePartition);
 
         try {
-            stateMgr.restore(storeMetadata, singletonList(consumerRecord), 0L); // TODO
+            stateMgr.restore(storeMetadata, singletonList(consumerRecord), 200L);
             fail("should have thrown processor state exception when IO exception happens");
         } catch (final ProcessorStateException e) {
             // pass

@@ -444,7 +444,7 @@ public class ProcessorStateManager implements StateManager {
     }
 
     // used by the changelog reader only
-    void restore(final StateStoreMetadata storeMetadata, final List<ConsumerRecord<byte[], byte[]>> restoreRecords, Long consumerLag) {
+    void restore(final StateStoreMetadata storeMetadata, final List<ConsumerRecord<byte[], byte[]>> restoreRecords, final Long consumerLag) {
         if (!stores.containsValue(storeMetadata)) {
             throw new IllegalStateException("Restoring " + storeMetadata + " which is not registered in this state manager, " +
                 "this should not happen.");

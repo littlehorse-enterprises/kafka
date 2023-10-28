@@ -238,6 +238,7 @@ public class StoreChangelogReaderTest extends EasyMockSupport {
         EasyMock.expect(mockTasks.get(null)).andReturn(mock(Task.class)).anyTimes();
         EasyMock.expect(mockTasks.containsKey(null)).andReturn(true).anyTimes();
         EasyMock.expect(storeMetadata.offset()).andReturn(9L).anyTimes();
+        EasyMock.expect(storeMetadata.endOffset()).andReturn(10L).anyTimes();
         EasyMock.expect(stateManager.changelogOffsets()).andReturn(singletonMap(tp, 10L));
         EasyMock.replay(mockTasks, stateManager, storeMetadata, store);
 
@@ -282,6 +283,7 @@ public class StoreChangelogReaderTest extends EasyMockSupport {
         EasyMock.expect(mockTasks.get(null)).andReturn(mock(Task.class)).anyTimes();
         EasyMock.expect(mockTasks.containsKey(null)).andReturn(true).anyTimes();
         EasyMock.expect(storeMetadata.offset()).andReturn(9L).anyTimes();
+        EasyMock.expect(storeMetadata.endOffset()).andReturn(10L).anyTimes();
         EasyMock.expect(stateManager.changelogOffsets()).andReturn(singletonMap(tp, 10L));
         EasyMock.replay(mockTasks, stateManager, storeMetadata, store);
 
@@ -329,6 +331,7 @@ public class StoreChangelogReaderTest extends EasyMockSupport {
         EasyMock.expect(mockTasks.get(null)).andReturn(mock(Task.class)).anyTimes();
         EasyMock.expect(mockTasks.containsKey(null)).andReturn(true).anyTimes();
         EasyMock.expect(storeMetadata.offset()).andReturn(9L).anyTimes();
+        EasyMock.expect(storeMetadata.endOffset()).andReturn(10L).anyTimes();
         EasyMock.replay(mockTasks, stateManager, storeMetadata, store);
 
         adminClient.updateEndOffsets(Collections.singletonMap(tp, 10L));
@@ -418,6 +421,7 @@ public class StoreChangelogReaderTest extends EasyMockSupport {
         final TaskId taskId = new TaskId(0, 0);
 
         EasyMock.expect(storeMetadata.offset()).andReturn(null).andReturn(9L).anyTimes();
+        EasyMock.expect(storeMetadata.endOffset()).andReturn(10L).anyTimes();
         EasyMock.expect(stateManager.changelogOffsets()).andReturn(singletonMap(tp, 5L));
         EasyMock.expect(stateManager.taskId()).andReturn(taskId).anyTimes();
         EasyMock.replay(stateManager, storeMetadata, store);
@@ -454,6 +458,7 @@ public class StoreChangelogReaderTest extends EasyMockSupport {
         final TaskId taskId = new TaskId(0, 0);
 
         EasyMock.expect(storeMetadata.offset()).andReturn(5L).anyTimes();
+        EasyMock.expect(storeMetadata.endOffset()).andReturn(10L).anyTimes();
         EasyMock.expect(stateManager.changelogOffsets()).andReturn(singletonMap(tp, 5L));
         EasyMock.expect(stateManager.taskId()).andReturn(taskId).anyTimes();
         EasyMock.replay(stateManager, storeMetadata, store);
@@ -524,6 +529,7 @@ public class StoreChangelogReaderTest extends EasyMockSupport {
 
         if (type == STANDBY && logContext.logger(StoreChangelogReader.class).isDebugEnabled()) {
             EasyMock.expect(storeMetadata.offset()).andReturn(null).andReturn(null).andReturn(9L).anyTimes();
+            EasyMock.expect(storeMetadata.endOffset()).andReturn(10L).anyTimes();
         } else {
             EasyMock.expect(storeMetadata.offset()).andReturn(null).andReturn(9L).anyTimes();
         }
@@ -810,6 +816,7 @@ public class StoreChangelogReaderTest extends EasyMockSupport {
 
         EasyMock.expect(stateManager.changelogAsSource(tp)).andReturn(true).anyTimes();
         EasyMock.expect(storeMetadata.offset()).andReturn(5L).anyTimes();
+        EasyMock.expect(storeMetadata.endOffset()).andReturn(10L).anyTimes();
         EasyMock.expect(stateManager.changelogOffsets()).andReturn(singletonMap(tp, 5L));
         EasyMock.expect(stateManager.taskId()).andReturn(taskId).anyTimes();
         EasyMock.replay(mockTask, stateManager, storeMetadata, store);
@@ -921,6 +928,7 @@ public class StoreChangelogReaderTest extends EasyMockSupport {
         EasyMock.expect(mockTasks.get(null)).andReturn(mock(Task.class)).anyTimes();
         EasyMock.expect(mockTasks.containsKey(null)).andReturn(true).anyTimes();
         EasyMock.expect(storeMetadata.offset()).andReturn(4L).anyTimes();
+        EasyMock.expect(storeMetadata.endOffset()).andReturn(10L).anyTimes();
         EasyMock.replay(mockTasks, standbyStateManager, storeMetadata, store);
 
         consumer.updateBeginningOffsets(Collections.singletonMap(tp, 5L));
@@ -1020,6 +1028,7 @@ public class StoreChangelogReaderTest extends EasyMockSupport {
         EasyMock.expect(mockTasks.containsKey(null)).andReturn(true).anyTimes();
         EasyMock.expect(standbyStateManager.changelogAsSource(tp)).andReturn(true).anyTimes();
         EasyMock.expect(storeMetadata.offset()).andReturn(4L).anyTimes();
+        EasyMock.expect(storeMetadata.endOffset()).andReturn(10L).anyTimes();
         EasyMock.replay(mockTasks, standbyStateManager, storeMetadata, store);
 
         final long now = time.milliseconds();
