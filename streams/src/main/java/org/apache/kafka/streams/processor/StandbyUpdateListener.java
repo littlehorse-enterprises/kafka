@@ -58,6 +58,7 @@ public interface StandbyUpdateListener {
      */
     void onBatchUpdated(final TopicPartition topicPartition,
                          final String storeName,
+                         final TaskId taskId,
                          final long batchEndOffset,
                          final long numRestored,
                          final long currentEndOffset);

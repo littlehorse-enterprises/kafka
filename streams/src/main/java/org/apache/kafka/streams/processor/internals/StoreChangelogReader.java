@@ -52,6 +52,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.OptionalLong;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Function;
@@ -679,10 +680,9 @@ public class StoreChangelogReader implements ChangelogReader {
                     throw new StreamsException("State restore listener failed on batch restored", e);
                 }
             } else if (changelogMetadata.stateManager.taskType() == TaskType.STANDBY) {
-                // WIP - we should ask this endOffset to StateManager
-                Map<TopicPartition, Long> topicPartitionLongMap = restoreConsumer.endOffsets(Collections.singleton(partition));
-                Long endOffset = topicPartitionLongMap.getOrDefault(partition, -1L);
-                standbyUpdateListener.onBatchUpdated(partition, storeName, currentOffset, numRecords, endOffset);
+                OptionalLong optionalLong = restoreConsumer.currentLag(partition);
+                Long endOffset = optionalLong.orElseGet(() -> 0L) + currentOffset;
+                standbyUpdateListener.onBatchUpdated(partition, storeName, task.id(), currentOffset, numRecords, endOffset);
             }
         }
 
