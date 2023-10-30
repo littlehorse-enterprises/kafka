@@ -687,7 +687,12 @@ public class TaskManager {
         for (final TopicPartition partition : partitions) {
             final ProcessorStateManager.StateStoreMetadata storeMetadata = stateManager.storeMetadata(partition);
             if (storeMetadata != null) {
-                standbyTaskUpdateListener.onUpdateSuspended(partition, storeMetadata.store().name(), 0L, storeMetadata.offset(), StandbyUpdateListener.SuspendReason.PROMOTED);
+                standbyTaskUpdateListener.onUpdateSuspended(
+                    partition,
+                    storeMetadata.store().name(),
+                    storeMetadata.offset(), // store offset
+                    storeMetadata.endOffset(), // changelog offset
+                    StandbyUpdateListener.SuspendReason.PROMOTED);
             }
         }
         return streamTask;

@@ -761,9 +761,9 @@ public class KafkaStreams implements AutoCloseable {
         }
 
         @Override
-        public void onBatchUpdated(final TopicPartition topicPartition, final String storeName, final TaskId taskId, final long batchEndOffset, final long numRestored, final long currentEndOffset) {
+        public void onBatchLoaded(final TopicPartition topicPartition, final String storeName, final TaskId taskId, final long batchEndOffset, final long numRestored, final long currentEndOffset) {
             if (standbyTaskUpdateListener != null) {
-                standbyTaskUpdateListener.onBatchUpdated(topicPartition, storeName, taskId, batchEndOffset, numRestored, currentEndOffset);
+                standbyTaskUpdateListener.onBatchLoaded(topicPartition, storeName, taskId, batchEndOffset, numRestored, currentEndOffset);
             }
         }
 

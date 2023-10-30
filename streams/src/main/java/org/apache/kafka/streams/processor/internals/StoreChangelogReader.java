@@ -679,7 +679,7 @@ public class StoreChangelogReader implements ChangelogReader {
                     throw new StreamsException("State restore listener failed on batch restored", e);
                 }
             } else if (changelogMetadata.stateManager.taskType() == TaskType.STANDBY) {
-                standbyUpdateListener.onBatchUpdated(partition, storeName, task.id(), currentOffset, numRecords, storeMetadata.endOffset());
+                standbyUpdateListener.onBatchLoaded(partition, storeName, task.id(), currentOffset, numRecords, storeMetadata.endOffset());
             }
         }
 
@@ -1025,6 +1025,7 @@ public class StoreChangelogReader implements ChangelogReader {
         }
     }
 
+    // TODO: KIP-988: looks like this is the key to getting SuspendReason.MIGRATED.
     @Override
     public void unregister(final Collection<TopicPartition> revokedChangelogs) {
         // Only changelogs that are initialized have been added to the restore consumer's assignment

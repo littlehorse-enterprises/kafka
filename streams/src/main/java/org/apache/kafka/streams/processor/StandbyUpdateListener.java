@@ -56,7 +56,7 @@ public interface StandbyUpdateListener {
      * @param numRestored the total number of records restored in this batch for this TopicPartition
      * @param currentEndOffset the current end offset of the changelog topic partition.
      */
-    void onBatchUpdated(final TopicPartition topicPartition,
+    void onBatchLoaded(final TopicPartition topicPartition,
                          final String storeName,
                          final TaskId taskId,
                          final long batchEndOffset,
