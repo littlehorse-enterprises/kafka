@@ -75,6 +75,9 @@ import static org.apache.kafka.test.MockStateRestoreListener.RESTORE_BATCH;
 import static org.apache.kafka.test.MockStateRestoreListener.RESTORE_END;
 import static org.apache.kafka.test.MockStateRestoreListener.RESTORE_SUSPENDED;
 import static org.apache.kafka.test.MockStateRestoreListener.RESTORE_START;
+import static org.apache.kafka.test.MockStandbyUpdateListener.UPDATE_SUSPENDED;
+import static org.apache.kafka.test.MockStandbyUpdateListener.UPDATE_START;
+import static org.apache.kafka.test.MockStandbyUpdateListener.UPDATE_BATCH;
 import static org.easymock.EasyMock.anyBoolean;
 import static org.easymock.EasyMock.anyLong;
 import static org.easymock.EasyMock.anyObject;
@@ -230,6 +233,7 @@ public class StoreChangelogReaderTest extends EasyMockSupport {
         assertNull(callback.storeNameCalledStates.get(RESTORE_START));
         assertNull(callback.storeNameCalledStates.get(RESTORE_SUSPENDED));
         assertNull(callback.storeNameCalledStates.get(RESTORE_BATCH));
+        assertNull(standbyUpdateListener.capturedStore(UPDATE_SUSPENDED));
     }
 
     @Test
@@ -273,6 +277,9 @@ public class StoreChangelogReaderTest extends EasyMockSupport {
             assertNull(callback.restoreTopicPartition);
             assertNull(callback.storeNameCalledStates.get(RESTORE_START));
             assertNull(callback.storeNameCalledStates.get(RESTORE_SUSPENDED));
+            assertEquals(storeName, standbyUpdateListener.capturedStore(UPDATE_START));
+            assertEquals(tp, standbyUpdateListener.updatePartition);
+
         }
         assertNull(callback.storeNameCalledStates.get(RESTORE_BATCH));
     }
@@ -322,6 +329,14 @@ public class StoreChangelogReaderTest extends EasyMockSupport {
             assertEquals(storeName, callback.storeNameCalledStates.get(RESTORE_END));
             assertNull(callback.storeNameCalledStates.get(RESTORE_SUSPENDED));
             assertNull(callback.storeNameCalledStates.get(RESTORE_BATCH));
+
+            assertNull(standbyUpdateListener.capturedStore(UPDATE_START));
+            assertNull(standbyUpdateListener.updatePartition);
+        } else {
+            assertEquals(storeName, standbyUpdateListener.capturedStore(UPDATE_START));
+            assertEquals(tp, standbyUpdateListener.updatePartition);
+            assertNull(standbyUpdateListener.capturedStore(UPDATE_BATCH));
+            assertNull(standbyUpdateListener.capturedStore(UPDATE_SUSPENDED));
         }
     }
 
@@ -362,6 +377,11 @@ public class StoreChangelogReaderTest extends EasyMockSupport {
             assertEquals(storeName, callback.storeNameCalledStates.get(RESTORE_START));
             assertEquals(storeName, callback.storeNameCalledStates.get(RESTORE_END));
             assertNull(callback.storeNameCalledStates.get(RESTORE_BATCH));
+        } else {
+            assertNull(callback.storeNameCalledStates.get(UPDATE_SUSPENDED));
+            assertNull(callback.storeNameCalledStates.get(UPDATE_BATCH));
+            assertEquals(storeName, standbyUpdateListener.capturedStore(UPDATE_START));
+            assertEquals(tp, standbyUpdateListener.updatePartition);
         }
     }
 
@@ -396,40 +416,17 @@ public class StoreChangelogReaderTest extends EasyMockSupport {
     }
 
     @Test
-    public void shouldPollWithRightTimeoutWithStateUpdater() {
-        shouldPollWithRightTimeout(true);
-    }
-
-    @Test
-    public void shouldPollWithRightTimeoutWithoutStateUpdater() {
-        shouldPollWithRightTimeout(false);
-    }
-
-    private void shouldPollWithRightTimeout(final boolean stateUpdaterEnabled) {
-        final Properties properties = new Properties();
-        properties.put(InternalConfig.STATE_UPDATER_ENABLED, stateUpdaterEnabled);
-        shouldPollWithRightTimeout(properties);
-    }
-
-    @Test
-    public void shouldPollWithRightTimeoutWithStateUpdaterDefault() {
-        final Properties properties = new Properties();
-        shouldPollWithRightTimeout(properties);
-    }
-
-    private void shouldPollWithRightTimeout(final Properties properties) {
+    public void shouldPollWithRightTimeout() {
         final TaskId taskId = new TaskId(0, 0);
 
         EasyMock.expect(storeMetadata.offset()).andReturn(null).andReturn(9L).anyTimes();
-        EasyMock.expect(storeMetadata.endOffset()).andReturn(10L).anyTimes();
+        EasyMock.expect(storeMetadata.endOffset()).andReturn(null).andReturn(10L).anyTimes();
         EasyMock.expect(stateManager.changelogOffsets()).andReturn(singletonMap(tp, 5L));
         EasyMock.expect(stateManager.taskId()).andReturn(taskId).anyTimes();
         EasyMock.replay(stateManager, storeMetadata, store);
 
         consumer.updateBeginningOffsets(Collections.singletonMap(tp, 5L));
         adminClient.updateEndOffsets(Collections.singletonMap(tp, 11L));
-
-        final StreamsConfig config = new StreamsConfig(StreamsTestUtils.getStreamsConfig("test-reader", properties));
 
         final StoreChangelogReader changelogReader =
             new StoreChangelogReader(time, config, logContext, adminClient, consumer, callback, standbyUpdateListener);
@@ -441,16 +438,42 @@ public class StoreChangelogReaderTest extends EasyMockSupport {
         }
 
         changelogReader.restore(Collections.singletonMap(taskId, mock(Task.class)));
+
         if (type == ACTIVE) {
             assertEquals(Duration.ofMillis(config.getLong(StreamsConfig.POLL_MS_CONFIG)), consumer.lastPollTimeout());
         } else {
-            if (!properties.containsKey(InternalConfig.STATE_UPDATER_ENABLED)
-                    || (boolean) properties.get(InternalConfig.STATE_UPDATER_ENABLED)) {
-                assertEquals(Duration.ofMillis(config.getLong(StreamsConfig.POLL_MS_CONFIG)), consumer.lastPollTimeout());
-            } else {
-                assertEquals(Duration.ZERO, consumer.lastPollTimeout());
-            }
+            assertEquals(Duration.ZERO, consumer.lastPollTimeout());
         }
+    }
+
+    @Test
+    public void shouldPollWithRightTimeoutWithStateUpdater() {
+        final TaskId taskId = new TaskId(0, 0);
+
+        EasyMock.expect(storeMetadata.offset()).andReturn(null).andReturn(9L).anyTimes();
+        EasyMock.expect(storeMetadata.endOffset()).andReturn(null).andReturn(10L).anyTimes();
+        EasyMock.expect(stateManager.changelogOffsets()).andReturn(singletonMap(tp, 5L));
+        EasyMock.expect(stateManager.taskId()).andReturn(taskId).anyTimes();
+        EasyMock.replay(stateManager, storeMetadata, store);
+
+        consumer.updateBeginningOffsets(Collections.singletonMap(tp, 5L));
+        adminClient.updateEndOffsets(Collections.singletonMap(tp, 11L));
+
+        final Properties properties = new Properties();
+        properties.put(InternalConfig.STATE_UPDATER_ENABLED, true);
+        final StreamsConfig config = new StreamsConfig(StreamsTestUtils.getStreamsConfig("test-reader", properties));
+
+        final StoreChangelogReader changelogReader =
+                new StoreChangelogReader(time, config, logContext, adminClient, consumer, callback, standbyUpdateListener);
+
+        changelogReader.register(tp, stateManager);
+
+        if (type == STANDBY) {
+            changelogReader.transitToUpdateStandby();
+        }
+
+        changelogReader.restore(Collections.singletonMap(taskId, mock(Task.class)));
+        assertEquals(Duration.ofMillis(config.getLong(StreamsConfig.POLL_MS_CONFIG)), consumer.lastPollTimeout());
     }
 
     @Test
@@ -529,9 +552,10 @@ public class StoreChangelogReaderTest extends EasyMockSupport {
 
         if (type == STANDBY && logContext.logger(StoreChangelogReader.class).isDebugEnabled()) {
             EasyMock.expect(storeMetadata.offset()).andReturn(null).andReturn(null).andReturn(9L).anyTimes();
-            EasyMock.expect(storeMetadata.endOffset()).andReturn(10L).anyTimes();
+            EasyMock.expect(storeMetadata.endOffset()).andReturn(null).andReturn(10L).anyTimes();
         } else {
             EasyMock.expect(storeMetadata.offset()).andReturn(null).andReturn(9L).anyTimes();
+            EasyMock.expect(storeMetadata.endOffset()).andReturn(null).andReturn(20L).anyTimes();
         }
         EasyMock.expect(stateManager.changelogOffsets()).andReturn(singletonMap(tp, 5L));
         EasyMock.expect(stateManager.taskId()).andReturn(taskId).anyTimes();
@@ -963,7 +987,6 @@ public class StoreChangelogReaderTest extends EasyMockSupport {
         assertTrue(changelogReader.changelogMetadata(tp).bufferedRecords().isEmpty());
     }
 
-    //WIP
     @Test
     public void shouldNotUpdateLimitForNonSourceStandbyChangelog() {
         final Map<TaskId, Task> mockTasks = mock(Map.class);
@@ -971,6 +994,7 @@ public class StoreChangelogReaderTest extends EasyMockSupport {
         EasyMock.expect(mockTasks.containsKey(null)).andReturn(true).anyTimes();
         EasyMock.expect(standbyStateManager.changelogAsSource(tp)).andReturn(false).anyTimes();
         EasyMock.expect(storeMetadata.offset()).andReturn(4L).anyTimes();
+        EasyMock.expect(storeMetadata.endOffset()).andReturn(20L).anyTimes();
 
         EasyMock.replay(mockTasks, standbyStateManager, storeMetadata, store);
 
@@ -1195,6 +1219,8 @@ public class StoreChangelogReaderTest extends EasyMockSupport {
         EasyMock.expect(storeMetadata.offset()).andReturn(5L).anyTimes();
         EasyMock.expect(storeMetadataOne.offset()).andReturn(5L).anyTimes();
         EasyMock.expect(storeMetadataTwo.offset()).andReturn(5L).anyTimes();
+        EasyMock.expect(storeMetadataTwo.endOffset()).andReturn(20L).anyTimes();
+        EasyMock.expect(storeMetadataOne.endOffset()).andReturn(20L).anyTimes();
         EasyMock.expect(standbyStateManager.storeMetadata(tp1)).andReturn(storeMetadataOne).anyTimes();
         EasyMock.expect(standbyStateManager.storeMetadata(tp2)).andReturn(storeMetadataTwo).anyTimes();
         EasyMock.expect(activeStateManager.changelogOffsets()).andReturn(singletonMap(tp, 5L));
@@ -1320,8 +1346,8 @@ public class StoreChangelogReaderTest extends EasyMockSupport {
 
     @Test
     public void shouldNotThrowOnUnknownRevokedPartition() {
+        LogCaptureAppender.setClassLoggerToDebug(StoreChangelogReader.class);
         try (final LogCaptureAppender appender = LogCaptureAppender.createAndRegister(StoreChangelogReader.class)) {
-            appender.setClassLoggerToDebug(StoreChangelogReader.class);
             changelogReader.unregister(Collections.singletonList(new TopicPartition("unknown", 0)));
 
             assertThat(
