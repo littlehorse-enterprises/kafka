@@ -98,7 +98,7 @@ public class ProcessorStateManager implements StateManager {
         private Long offset;
 
         // Will be updated on batch restored
-        private Long endOffset = 0L;
+        private Long endOffset;
 
         // corrupted state store should not be included in checkpointing
         private boolean corrupted;
@@ -468,7 +468,10 @@ public class ProcessorStateManager implements StateManager {
             }
 
             storeMetadata.setOffset(batchEndOffset);
-            storeMetadata.setEndOffset(consumerLag + batchEndOffset);
+            // If null means the lag for this partition is not known yet
+            if (consumerLag != null) {
+                storeMetadata.setEndOffset(consumerLag + batchEndOffset);
+            }
         }
     }
 

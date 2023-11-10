@@ -764,17 +764,16 @@ public class KafkaStreams implements AutoCloseable {
     final class DelegatingStandbyUpdateListener implements StandbyUpdateListener {
 
         @Override
-        public void onUpdateStart(final TopicPartition topicPartition, final String storeName, final long earliestOffset, final long startingOffset, final long currentEndOffset) {
+        public void onUpdateStart(final TopicPartition topicPartition, final String storeName, final long startingOffset, final long currentEndOffset) {
             if (standbyTaskUpdateListener != null) {
-                standbyTaskUpdateListener.onUpdateStart(topicPartition, storeName, earliestOffset, startingOffset, currentEndOffset);
+                standbyTaskUpdateListener.onUpdateStart(topicPartition, storeName, startingOffset, currentEndOffset);
             }
-            // TODO eduwer
         }
 
         @Override
-        public void onBatchUpdated(final TopicPartition topicPartition, final String storeName, final TaskId taskId, final long batchEndOffset, final long numRestored, final long currentEndOffset) {
+        public void onBatchLoaded(final TopicPartition topicPartition, final String storeName, final TaskId taskId, final long batchEndOffset, final long numRestored, final long currentEndOffset) {
             if (standbyTaskUpdateListener != null) {
-                standbyTaskUpdateListener.onBatchUpdated(topicPartition, storeName, taskId, batchEndOffset, numRestored, currentEndOffset);
+                standbyTaskUpdateListener.onBatchLoaded(topicPartition, storeName, taskId, batchEndOffset, numRestored, currentEndOffset);
             }
         }
 
