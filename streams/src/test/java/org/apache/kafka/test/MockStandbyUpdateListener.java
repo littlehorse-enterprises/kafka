@@ -23,23 +23,37 @@ import org.apache.kafka.streams.processor.TaskId;
 import java.util.HashMap;
 import java.util.Map;
 
-public class MockStandbyUpdateListener implements StandbyUpdateListener {
+public final class MockStandbyUpdateListener implements StandbyUpdateListener {
 
     public final Map<String, String> storeNameCalledUpdate = new HashMap<>();
     public static final String UPDATE_BATCH = "update_batch";
+    public static final String UPDATE_SUSPENDED = "update_suspended";
+
+    public static final String UPDATE_START = "update_start";
+
+    public SuspendReason updateSuspendedReason;
+
+    public TopicPartition updatePartition;
 
     @Override
-    public void onUpdateStart(TopicPartition topicPartition, String storeName, long earliestOffset, long startingOffset, long currentEndOffset) {
-
+    public void onUpdateStart(TopicPartition partition, String storeName, long startingOffset, long currentEndOffset) {
+        storeNameCalledUpdate.put(UPDATE_START, storeName);
+        this.updatePartition = partition;
     }
 
     @Override
-    public void onBatchUpdated(TopicPartition topicPartition, String storeName, TaskId taskId, long batchEndOffset, long numRestored, long currentEndOffset) {
+    public void onBatchLoaded(TopicPartition topicPartition, String storeName, TaskId taskId, long batchEndOffset, long numRestored, long currentEndOffset) {
         storeNameCalledUpdate.put(UPDATE_BATCH, storeName);
     }
 
     @Override
-    public void onUpdateSuspended(TopicPartition topicPartition, String storeName, long storeOffset, long currentEndOffset, SuspendReason reason) {
+    public void onUpdateSuspended(TopicPartition partition, String storeName, long storeOffset, long currentEndOffset, SuspendReason reason) {
+        storeNameCalledUpdate.put(UPDATE_SUSPENDED, storeName);
+        this.updateSuspendedReason = reason;
+        this.updatePartition = partition;
+    }
 
+    public String capturedStore(String callbackName) {
+        return storeNameCalledUpdate.get(callbackName);
     }
 }

@@ -683,11 +683,11 @@ public class TaskManager {
 
     private StreamTask convertStandbyToActive(final StandbyTask standbyTask, final Set<TopicPartition> partitions) {
         final StreamTask streamTask = activeTaskCreator.createActiveTaskFromStandby(standbyTask, partitions, mainConsumer);
-        final ProcessorStateManager stateManager = standbyTask.stateMgr;
+        final ProcessorStateManager stateManager = standbyTask.stateManager();
         for (final TopicPartition partition : partitions) {
             final ProcessorStateManager.StateStoreMetadata storeMetadata = stateManager.storeMetadata(partition);
-            if (storeMetadata != null) {
-                standbyTaskUpdateListener.onUpdateSuspended(partition, storeMetadata.store().name(), 0L, storeMetadata.offset(), StandbyUpdateListener.SuspendReason.PROMOTED);
+            if (storeMetadata != null && storeMetadata.endOffset() != null) {
+                standbyTaskUpdateListener.onUpdateSuspended(partition, storeMetadata.store().name(), storeMetadata.offset(), storeMetadata.endOffset(), StandbyUpdateListener.SuspendReason.PROMOTED);
             }
         }
         return streamTask;

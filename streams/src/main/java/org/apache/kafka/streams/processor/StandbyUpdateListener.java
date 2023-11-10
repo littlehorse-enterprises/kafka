@@ -22,7 +22,10 @@ public interface StandbyUpdateListener {
 
     enum SuspendReason {
         MIGRATED,
-        PROMOTED;
+        PROMOTED,
+        PAUSED;
+
+
     }
     
     /**
@@ -30,13 +33,11 @@ public interface StandbyUpdateListener {
      *
      * @param topicPartition   the TopicPartition of the Standby Task.
      * @param storeName        the name of the store being watched by this Standby Task.
-     * @param earliestOffset   the earliest offset available on the Changelog topic.
      * @param startingOffset   the offset from which the Standby Task starts watching.
      * @param currentEndOffset the current latest offset on the associated changelog partition.
      */
     void onUpdateStart(final TopicPartition topicPartition,
                        final String storeName,
-                       final long earliestOffset,
                        final long startingOffset,
                        final long currentEndOffset);
 
@@ -56,12 +57,12 @@ public interface StandbyUpdateListener {
      * @param numRestored the total number of records restored in this batch for this TopicPartition
      * @param currentEndOffset the current end offset of the changelog topic partition.
      */
-    void onBatchUpdated(final TopicPartition topicPartition,
-                         final String storeName,
-                         final TaskId taskId,
-                         final long batchEndOffset,
-                         final long numRestored,
-                         final long currentEndOffset);
+    void onBatchLoaded(final TopicPartition topicPartition,
+                       final String storeName,
+                       final TaskId taskId,
+                       final long batchEndOffset,
+                       final long numRestored,
+                       final long currentEndOffset);
 
     /**
      * Method called after a Standby Task is closed, either because the Standby Task was promoted to an Active Task

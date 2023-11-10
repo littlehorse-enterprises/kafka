@@ -52,6 +52,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.OptionalLong;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Function;
@@ -651,7 +652,12 @@ public class StoreChangelogReader implements ChangelogReader {
 
         if (numRecords != 0) {
             final List<ConsumerRecord<byte[], byte[]>> records = changelogMetadata.bufferedRecords.subList(0, numRecords);
-            stateManager.restore(storeMetadata, records, restoreConsumer.currentLag(partition).orElse(0L));
+            final OptionalLong optionalLag = restoreConsumer.currentLag(partition);
+            Long currentLag = null;
+            if (optionalLag.isPresent()) {
+                currentLag = optionalLag.getAsLong();
+            }
+            stateManager.restore(storeMetadata, records, currentLag);
 
             // NOTE here we use removeRange of ArrayList in order to achieve efficiency with range shifting,
             // otherwise one-at-a-time removal or addition would be very costly; if all records are restored
@@ -679,7 +685,7 @@ public class StoreChangelogReader implements ChangelogReader {
                     throw new StreamsException("State restore listener failed on batch restored", e);
                 }
             } else if (changelogMetadata.stateManager.taskType() == TaskType.STANDBY) {
-                standbyUpdateListener.onBatchUpdated(partition, storeName, task.id(), currentOffset, numRecords, storeMetadata.endOffset());
+                standbyUpdateListener.onBatchLoaded(partition, storeName, stateManager.taskId(), currentOffset, numRecords, storeMetadata.endOffset());
             }
         }
 
@@ -988,7 +994,7 @@ public class StoreChangelogReader implements ChangelogReader {
             restoreConsumer.seekToBeginning(newPartitionsWithoutStartOffset);
         }
 
-        // do not trigger restore listener if we are processing standby tasks
+        // trigger standby listener if we are processing standby tasks
         for (final ChangelogMetadata changelogMetadata : newPartitionsToRestore) {
             final StateStoreMetadata storeMetadata = changelogMetadata.storeMetadata;
             final TopicPartition partition = storeMetadata.changelogPartition();
@@ -1019,8 +1025,8 @@ public class StoreChangelogReader implements ChangelogReader {
                 // no records to restore; in this case we just initialize the sensor to zero
                 final long recordsToRestore = Math.max(changelogMetadata.restoreEndOffset - startOffset, 0L);
                 task.recordRestoration(time, recordsToRestore, true);
-            } else {
-                standbyUpdateListener.onUpdateStart(partition, storeName, -1L, startOffset, storeMetadata.endOffset());
+            } else if (changelogMetadata.stateManager.taskType() == TaskType.STANDBY && storeMetadata.endOffset() != null) {
+                standbyUpdateListener.onUpdateStart(partition, storeName, startOffset, storeMetadata.endOffset());
             }
         }
     }
