@@ -593,7 +593,7 @@ public class KafkaStreams implements AutoCloseable {
             if (state.hasNotStarted()) {
                 this.standbyTaskUpdateListener = standbyTaskUpdateListener;
             } else {
-                throw new IllegalStateException("Can only set GlobalStateRestoreListener before calling start(). " +
+                throw new IllegalStateException("Can only set StandbyUpdateListener before calling start(). " +
                         "Current state is: " + state);
             }
         }
