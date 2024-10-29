@@ -228,7 +228,7 @@ public class StreamThreadTest {
         if (thread != null) {
             // KAFKA-17122 manually stop taskManager if `thread` is not in CREATED state.
             if (thread.state() != State.CREATED) {
-                thread.taskManager().shutdown(false);
+                thread.taskManager().shutdown(new RuntimeException(""));
             }
             thread.shutdown();
             thread = null;
@@ -1376,7 +1376,7 @@ public class StreamThreadTest {
             });
         thread.run();
 
-        verify(taskManager).shutdown(true);
+        verify(taskManager).shutdown(null);
     }
 
     @ParameterizedTest
@@ -1470,7 +1470,7 @@ public class StreamThreadTest {
             .updateThreadMetadata(adminClientId(CLIENT_ID));
         thread.shutdown();
 
-        verify(taskManager).shutdown(true);
+        verify(taskManager).shutdown(null);
     }
 
     @ParameterizedTest
@@ -1492,7 +1492,7 @@ public class StreamThreadTest {
         // Execute the run method. Verification of the mock will check that shutdown was only done once
         thread.run();
 
-        verify(taskManager).shutdown(true);
+        verify(taskManager).shutdown(null);
     }
 
     @ParameterizedTest
@@ -1588,7 +1588,7 @@ public class StreamThreadTest {
         assertThat(producer.commitCount(), equalTo(1L));
     }
 
-    private void testThrowingDurringCommitTransactionException(final RuntimeException e, final boolean stateUpdaterEnabled, final boolean processingThreadsEnabled) throws InterruptedException {
+    private void testThrowingDuringCommitTransactionException(final RuntimeException e, final boolean stateUpdaterEnabled, final boolean processingThreadsEnabled) throws InterruptedException {
         final StreamsConfig config = new StreamsConfig(configProps(true, stateUpdaterEnabled, processingThreadsEnabled));
         thread = createStreamThread(CLIENT_ID, config);
 
@@ -1634,12 +1634,12 @@ public class StreamThreadTest {
     @ParameterizedTest
     @MethodSource("data")        
     public void shouldNotCloseTaskAndRemoveFromTaskManagerIfProducerGotFencedInCommitTransactionWhenSuspendingTasks(final boolean stateUpdaterEnabled, final boolean processingThreadsEnabled) throws Exception {
-        testThrowingDurringCommitTransactionException(new ProducerFencedException("Producer is fenced"), stateUpdaterEnabled, processingThreadsEnabled);
+        testThrowingDuringCommitTransactionException(new ProducerFencedException("Producer is fenced"), stateUpdaterEnabled, processingThreadsEnabled);
     }
     @ParameterizedTest
     @MethodSource("data")        
     public void shouldNotCloseTaskAndRemoveFromTaskManagerIfInvalidPidMappingOccurredInCommitTransactionWhenSuspendingTasks(final boolean stateUpdaterEnabled, final boolean processingThreadsEnabled) throws Exception {
-        testThrowingDurringCommitTransactionException(new InvalidPidMappingException("PidMapping is invalid"), stateUpdaterEnabled, processingThreadsEnabled);
+        testThrowingDuringCommitTransactionException(new InvalidPidMappingException("PidMapping is invalid"), stateUpdaterEnabled, processingThreadsEnabled);
     }
 
     @ParameterizedTest

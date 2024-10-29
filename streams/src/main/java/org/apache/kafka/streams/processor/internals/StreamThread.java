@@ -667,16 +667,26 @@ public class StreamThread extends Thread implements ProcessingThread {
             log.info("StreamThread already shutdown. Not running");
             return;
         }
-        boolean cleanRun = false;
+        Runnable loop = () -> {
+            try {
+                runLoop();
+            } catch (Exception e) {
+                failedStreamThreadSensor.record();
+                requestLeaveGroupDuringShutdown();
+                throw e;
+            }
+        };
+        Throwable thrown = null;
         try {
-            cleanRun = runLoop();
+            loop.run();
         } catch (final Throwable e) {
-            failedStreamThreadSensor.record();
-            requestLeaveGroupDuringShutdown();
+            thrown = e;
+            completeShutdown(false, e);
             streamsUncaughtExceptionHandler.accept(e, false);
-            // Note: the above call currently rethrows the exception, so nothing below this line will be executed
         } finally {
-            completeShutdown(cleanRun);
+            if(thrown == null) {
+                completeShutdown(true, null);
+            }
         }
     }
 
@@ -1430,11 +1440,11 @@ public class StreamThread extends Thread implements ProcessingThread {
         final State oldState = setState(State.PENDING_SHUTDOWN);
         if (oldState == State.CREATED) {
             // The thread may not have been started. Take responsibility for shutting down
-            completeShutdown(true);
+            completeShutdown(true, null);
         }
     }
 
-    private void completeShutdown(final boolean cleanRun) {
+    private void completeShutdown(final boolean cleanRun, Throwable throwable) {
         // set the state to pending shutdown first as it may be called due to error;
         // its state may already be PENDING_SHUTDOWN so it will return false but we
         // intentionally do not check the returned flag
@@ -1445,7 +1455,7 @@ public class StreamThread extends Thread implements ProcessingThread {
         mainConsumerInstanceIdFuture.complete(null);
 
         try {
-            taskManager.shutdown(cleanRun);
+            taskManager.shutdown(throwable);
         } catch (final Throwable e) {
             log.error("Failed to close task manager due to the following error:", e);
         }

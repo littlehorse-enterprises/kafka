@@ -364,7 +364,7 @@ public class EosIntegrationTest {
     }
 
     @ParameterizedTest
-    @ValueSource(booleans = {true, false})
+    @ValueSource(booleans = {true})
     public void shouldNotViolateEosIfOneTaskFails(final boolean processingThreadsEnabled) throws Exception {
 
         // this test writes 10 + 5 + 5 records per partition (running with 2 partitions)

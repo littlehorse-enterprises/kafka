@@ -601,22 +601,22 @@ public class TaskManager {
             if (activeTasksToCreate.containsKey(taskId)) {
                 if (task.isActive()) {
                     if (!task.inputPartitions().equals(activeTasksToCreate.get(taskId))) {
-                        futuresForUpdatingInputPartitions.put(taskId, new FutureTaskToClose(task));
+                        futuresForUpdatingInputPartitions.put(taskId, new FutureTaskToClose(task.id()));
                         newInputPartitions.put(taskId, activeTasksToCreate.get(taskId));
                     }
                 } else {
-                    futuresForStandbyTasksToRecycle.put(taskId, new FutureTaskToClose(task));
+                    futuresForStandbyTasksToRecycle.put(taskId, new FutureTaskToClose(task.id()));
                     activeInputPartitions.put(taskId, activeTasksToCreate.get(taskId));
                 }
                 activeTasksToCreate.remove(taskId);
             } else if (standbyTasksToCreate.containsKey(taskId)) {
                 if (task.isActive()) {
-                    futuresForActiveTasksToRecycle.put(taskId, new FutureTaskToClose(task));
+                    futuresForActiveTasksToRecycle.put(taskId, new FutureTaskToClose(task.id()));
                     standbyInputPartitions.put(taskId, standbyTasksToCreate.get(taskId));
                 }
                 standbyTasksToCreate.remove(taskId);
             } else {
-                futuresForTasksToClose.put(taskId, new FutureTaskToClose(task));
+                futuresForTasksToClose.put(taskId, new FutureTaskToClose(task.id()));
             }
         }
         updateInputPartitions(futuresForUpdatingInputPartitions, newInputPartitions, failedTasks);
@@ -1151,7 +1151,7 @@ public class TaskManager {
             for (final Task restoringTask : stateUpdater.tasks()) {
                 if (restoringTask.isActive()) {
                     if (remainingRevokedPartitions.containsAll(restoringTask.inputPartitions())) {
-                        futures.put(restoringTask.id(), new FutureTaskToClose(restoringTask));
+                        futures.put(restoringTask.id(), new FutureTaskToClose(restoringTask.id()));
                         remainingRevokedPartitions.removeAll(restoringTask.inputPartitions());
                     }
                 }
@@ -1222,7 +1222,7 @@ public class TaskManager {
             final Map<TaskId, RuntimeException> failedTasksDuringCleanClose = new HashMap<>();
             for (final Task restoringTask : stateUpdater.tasks()) {
                 if (restoringTask.isActive()) {
-                    futures.put(restoringTask.id(), new FutureTaskToClose(restoringTask));
+                    futures.put(restoringTask.id(), new FutureTaskToClose(restoringTask.id()));
                 }
             }
             for (Task task : tasksToCloseClean) {
@@ -1410,29 +1410,27 @@ public class TaskManager {
         tasks.removeTask(task);
     }
 
-    void shutdown(final boolean clean) {
+    void shutdown(final Throwable thrown) {
         shutdownStateUpdater();
         shutdownSchedulingTaskManager();
+        final boolean clean = true;
 
         final AtomicReference<RuntimeException> firstException = new AtomicReference<>(null);
 
         // TODO: change type to `StreamTask`
         final Set<Task> activeTasks = new TreeSet<>(Comparator.comparing(Task::id));
         activeTasks.addAll(tasks.activeTasks());
+        try {
+            closeAndCleanUpTasks(activeTasks, standbyTaskIterable(), clean);
+        } catch (Throwable e) {
+            log.warn("Ignoring an exception while unlocking remaining task directories.", e);
+        }
 
-        executeAndMaybeSwallow(
-            clean,
-            () -> closeAndCleanUpTasks(activeTasks, standbyTaskIterable(), clean),
-            e -> firstException.compareAndSet(null, e),
-            e -> log.warn("Ignoring an exception while unlocking remaining task directories.", e)
-        );
-
-        executeAndMaybeSwallow(
-            clean,
-            activeTaskCreator::close,
-            e -> firstException.compareAndSet(null, e),
-            e -> log.warn("Ignoring an exception while closing thread producer.", e)
-        );
+        try {
+            activeTaskCreator.close();
+        }catch (Throwable e) {
+            log.warn("Ignoring an exception while closing thread producer.", e);
+        }
 
         tasks.clear();
 
@@ -1457,7 +1455,7 @@ public class TaskManager {
         if (stateUpdater != null) {
             final Map<TaskId, FutureTaskToClose> futures = new LinkedHashMap<>();
             for (final Task task : stateUpdater.tasks()) {
-                futures.put(task.id(), new FutureTaskToClose(task));
+                futures.put(task.id(), new FutureTaskToClose(task.id()));
             }
             final Set<Task> tasksToCloseClean = new HashSet<>();
             final Set<Task> tasksToCloseDirty = new HashSet<>();
@@ -2121,13 +2119,11 @@ public class TaskManager {
 
     private class FutureTaskToClose {
         private final TaskId taskId;
-        private final Task task;
         private final CompletableFuture<StateUpdater.RemovedTaskResult> future;
 
-        private FutureTaskToClose(Task task) {
-            this.task = task;
-            this.taskId = task.id();
-            this.future = stateUpdater.remove(task.id());
+        private FutureTaskToClose(TaskId taskId) {
+            this.taskId = taskId;
+            this.future = stateUpdater.remove(taskId);
         }
 
         private TaskToClose complete()  {
@@ -2137,7 +2133,7 @@ public class TaskManager {
             }
             Optional<RuntimeException> exception = removedTaskResult.exception();
             boolean closeDirty = exception.map(this::computeCloseDirty).orElse(false);
-            return new TaskToClose(task, closeDirty, removedTaskResult.exception().orElse(null));
+            return new TaskToClose(removedTaskResult.task(), closeDirty, removedTaskResult.exception().orElse(null));
         }
 
         private boolean computeCloseDirty(Exception exception) {
