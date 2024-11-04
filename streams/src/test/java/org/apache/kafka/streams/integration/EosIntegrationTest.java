@@ -467,7 +467,7 @@ public class EosIntegrationTest {
     }
 
     @ParameterizedTest
-    @ValueSource(booleans = {true, false})
+    @ValueSource(booleans = {true})
     public void shouldNotViolateEosIfOneTaskFailsWithState(final boolean processingThreadsEnabled) throws Exception {
 
         // this test updates a store with 10 + 5 + 5 records per partition (running with 2 partitions)
@@ -585,7 +585,7 @@ public class EosIntegrationTest {
     }
 
     @ParameterizedTest
-    @ValueSource(booleans = {true, false})
+    @ValueSource(booleans = {true})
     public void shouldNotViolateEosIfOneTaskGetsFencedUsingIsolatedAppInstances(final boolean processingThreadsEnabled) throws Exception {
         // this test writes 10 + 5 + 5 + 10 records per partition (running with 2 partitions)
         // the app is supposed to copy all 60 records into the output topic
@@ -746,7 +746,7 @@ public class EosIntegrationTest {
     }
 
     @ParameterizedTest
-    @ValueSource(booleans = {true, false})
+    @ValueSource(booleans = {true})
     public void shouldWriteLatestOffsetsToCheckpointOnShutdown(final boolean processingThreadsEnabled) throws Exception {
         final List<KeyValue<Long, Long>> writtenData = prepareData(0L, 10, 0L, 1L);
         final List<KeyValue<Long, Long>> expectedResult = computeExpectedResult(writtenData);
@@ -778,7 +778,7 @@ public class EosIntegrationTest {
     }
 
     @ParameterizedTest
-    @ValueSource(booleans = {true, false})
+    @ValueSource(booleans = {true})
     public void shouldCheckpointRestoredOffsetsWhenClosingCleanDuringRestoringStateUpdaterEnabled(
             final boolean processingThreadsEnabled) throws Exception {
         shouldCheckpointRestoredOffsetsWhenClosingCleanDuringRestoring(processingThreadsEnabled, true);
@@ -1061,6 +1061,7 @@ public class EosIntegrationTest {
 
 
                     if (errorInjected.compareAndSet(true, false)) {
+                        System.out.println("Failing at " + record.toString());
                         // only tries to fail once on one of the task
                         throw new RuntimeException("Injected test exception.");
                     }

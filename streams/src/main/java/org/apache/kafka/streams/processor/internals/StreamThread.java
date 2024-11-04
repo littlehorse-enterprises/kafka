@@ -667,26 +667,16 @@ public class StreamThread extends Thread implements ProcessingThread {
             log.info("StreamThread already shutdown. Not running");
             return;
         }
-        Runnable loop = () -> {
-            try {
-                runLoop();
-            } catch (Exception e) {
-                failedStreamThreadSensor.record();
-                requestLeaveGroupDuringShutdown();
-                throw e;
-            }
-        };
-        Throwable thrown = null;
+        boolean cleanRun = false;
         try {
-            loop.run();
+            cleanRun = runLoop();
         } catch (final Throwable e) {
-            thrown = e;
-            completeShutdown(false, e);
+            failedStreamThreadSensor.record();
+            requestLeaveGroupDuringShutdown();
             streamsUncaughtExceptionHandler.accept(e, false);
+            // Note: the above call currently rethrows the exception, so nothing below this line will be executed
         } finally {
-            if(thrown == null) {
-                completeShutdown(true, null);
-            }
+            completeShutdown(cleanRun, null);
         }
     }
 
@@ -1444,7 +1434,7 @@ public class StreamThread extends Thread implements ProcessingThread {
         }
     }
 
-    private void completeShutdown(final boolean cleanRun, Throwable throwable) {
+    private void completeShutdown(final boolean cleanRun, final Throwable throwable) {
         // set the state to pending shutdown first as it may be called due to error;
         // its state may already be PENDING_SHUTDOWN so it will return false but we
         // intentionally do not check the returned flag

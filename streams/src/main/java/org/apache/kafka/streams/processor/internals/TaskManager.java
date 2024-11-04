@@ -94,6 +94,7 @@ public class TaskManager {
     private final ProcessingMode processingMode;
     private final ChangelogReader changelogReader;
     private final TopologyMetadata topologyMetadata;
+    private final Map<TaskId, RuntimeException> lastExceptionPerTask = new HashMap<>();
 
     private final TaskExecutor taskExecutor;
 
@@ -407,6 +408,7 @@ public class TaskManager {
             for (final Map.Entry<TaskId, RuntimeException> entry : taskExceptions.entrySet()) {
                 final TaskId taskId = entry.getKey();
                 final RuntimeException exception = entry.getValue();
+                lastExceptionPerTask.put(taskId, exception);
 
                 if (exception instanceof StreamsException) {
                     if (exception instanceof TaskMigratedException) {
@@ -1513,9 +1515,9 @@ public class TaskManager {
     private Collection<Task> tryCloseCleanActiveTasks(final Collection<Task> activeTasksToClose,
                                                       final boolean clean,
                                                       final AtomicReference<RuntimeException> firstException) {
-        if (!clean) {
-            return activeTaskIterable();
-        }
+//        if (!clean) {
+//            return activeTaskIterable();
+//        }
         final Comparator<Task> byId = Comparator.comparing(Task::id);
         final Set<Task> tasksToCommit = new TreeSet<>(byId);
         final Set<Task> tasksToCloseDirty = new TreeSet<>(byId);
@@ -1525,6 +1527,10 @@ public class TaskManager {
         // first committing all tasks and then suspend and close them clean
         for (final Task task : activeTasksToClose) {
             try {
+                RuntimeException lastEx = lastExceptionPerTask.get(task.id());
+                if(lastEx != null) {
+                    throw lastEx;
+                }
                 final Map<TopicPartition, OffsetAndMetadata> committableOffsets = task.prepareCommit();
                 tasksToCommit.add(task);
                 if (!committableOffsets.isEmpty()) {
@@ -2137,7 +2143,7 @@ public class TaskManager {
         }
 
         private boolean computeCloseDirty(Exception exception) {
-            return false;
+            return true;
         }
 
         private StateUpdater.RemovedTaskResult waitForFuture(final TaskId taskId,

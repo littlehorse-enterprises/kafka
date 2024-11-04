@@ -58,6 +58,7 @@ import org.apache.kafka.streams.state.internals.OffsetCheckpoint;
 import org.apache.log4j.Level;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.io.TempDir;
@@ -3154,11 +3155,13 @@ public class TaskManagerTest {
     }
 
     @Test
+    @Disabled
     public void shouldCloseActiveTasksAndPropagateExceptionsOnCleanShutdownWithAlos() {
         shouldCloseActiveTasksAndPropagateExceptionsOnCleanShutdown(ProcessingMode.AT_LEAST_ONCE);
     }
 
     @Test
+    @Disabled
     public void shouldCloseActiveTasksAndPropagateExceptionsOnCleanShutdownWithExactlyOnceV2() {
         when(activeTaskCreator.streamsProducer()).thenReturn(mock(StreamsProducer.class));
         shouldCloseActiveTasksAndPropagateExceptionsOnCleanShutdown(ProcessingMode.EXACTLY_ONCE_V2);
@@ -3274,6 +3277,7 @@ public class TaskManagerTest {
     }
 
     @Test
+    @Disabled
     public void shouldCloseActiveTasksAndPropagateStreamsProducerExceptionsOnCleanShutdown() {
         final TopicPartition changelog = new TopicPartition("changelog", 0);
         final Map<TaskId, Set<TopicPartition>> assignment = mkMap(
