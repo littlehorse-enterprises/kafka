@@ -142,7 +142,7 @@ public class MockClient implements KafkaClient {
         return connectionState(node.idString()).pollDelayMs(now);
     }
 
-    public void setAdvanceTimeDuringPoll(boolean advanceTimeDuringPoll) {
+    public void advanceTimeDuringPoll(boolean advanceTimeDuringPoll) {
         this.advanceTimeDuringPoll = advanceTimeDuringPoll;
     }
 

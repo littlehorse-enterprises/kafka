@@ -570,7 +570,7 @@ public class SenderTest {
     @Test
     public void senderThreadShouldNotGetStuckWhenThrottledAndAddingPartitionsToTxn() {
         // We want MockClient#poll() to advance time so that eventually the backoff expires.
-        client.setAdvanceTimeDuringPoll(true);
+        client.advanceTimeDuringPoll(true);
 
         ProducerIdAndEpoch producerIdAndEpoch = new ProducerIdAndEpoch(123456L, (short) 0);
         apiVersions.update("0", NodeApiVersions.create(ApiKeys.INIT_PRODUCER_ID.id, (short) 0, (short) 3));
@@ -602,7 +602,7 @@ public class SenderTest {
         // It should have blocked roughly only the backoffTimeMs and some change.
         assertTrue(totalTimeToRunOnce < REQUEST_TIMEOUT);
 
-        client.setAdvanceTimeDuringPoll(false);
+        client.advanceTimeDuringPoll(false);
     }
 
     @Test
