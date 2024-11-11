@@ -1528,10 +1528,10 @@ public class TaskManagerTest {
         final TaskManager taskManager = setupForRevocationAndLost(Set.of(task1, task2), tasks);
         final CompletableFuture<StateUpdater.RemovedTaskResult> future1 = new CompletableFuture<>();
         when(stateUpdater.remove(task1.id())).thenReturn(future1);
-        future1.complete(new StateUpdater.RemovedTaskResult(task1, new InvalidOffsetException("Something happened")));
+        future1.complete(new StateUpdater.RemovedTaskResult(task1, new TaskCorruptedException(Set.of(task1.id()))));
         final CompletableFuture<StateUpdater.RemovedTaskResult> future3 = new CompletableFuture<>();
         when(stateUpdater.remove(task2.id())).thenReturn(future3);
-        future3.complete(new StateUpdater.RemovedTaskResult(task2, new InvalidOffsetException("Something else happened")));
+        future3.complete(new StateUpdater.RemovedTaskResult(task2, new TaskCorruptedException(Set.of(task2.id()))));
 
         taskManager.handleLostAll();
 

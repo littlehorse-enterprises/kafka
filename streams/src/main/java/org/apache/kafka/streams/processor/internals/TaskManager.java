@@ -737,7 +737,7 @@ public class TaskManager {
                 .forEach(removedTaskResult -> {
                     if (removedTaskResult.exception().isPresent()) {
                         final RuntimeException runtimeException = removedTaskResult.exception().get();
-                        if (runtimeException instanceof InvalidOffsetException) {
+                        if (runtimeException instanceof TaskCorruptedException) {
                             tasksToCloseDirtyFromStateUpdater.add(removedTaskResult.task());
                         } else  {
                             tasksToCloseCleanFromStateUpdater.add(removedTaskResult.task());
@@ -1566,7 +1566,7 @@ public class TaskManager {
             }
             for (final StateUpdater.ExceptionAndTask exceptionAndTask : stateUpdater.drainExceptionsAndFailedTasks()) {
                 final Task failedTask = exceptionAndTask.task();
-                if (exceptionAndTask.exception() instanceof InvalidOffsetException) {
+                if (exceptionAndTask.exception() instanceof TaskCorruptedException) {
                     closeTaskDirty(failedTask, false);
                 } else {
                     tasks.addTask(failedTask);
