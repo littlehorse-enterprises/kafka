@@ -3476,7 +3476,7 @@ public class TaskManagerTest {
     }
 
     @Test
-    public void shouldShutDownStateUpdaterAndCloseFailedTasksDirty() {
+    public void shouldShutDownStateUpdaterAndCloseFailedTasksClean() {
         final TasksRegistry tasks = mock(TasksRegistry.class);
         final StreamTask failedStatefulTask = statefulTask(taskId01, taskId01ChangelogPartitions)
             .inState(State.RESTORING).build();
@@ -3487,15 +3487,17 @@ public class TaskManagerTest {
                 new ExceptionAndTask(new RuntimeException(), failedStatefulTask),
                 new ExceptionAndTask(new RuntimeException(), failedStandbyTask))
             );
+        when(tasks.activeTasks()).thenReturn(Set.of(failedStatefulTask));
+        when(tasks.allTasks()).thenReturn(Set.of(failedStatefulTask, failedStandbyTask));
         final TaskManager taskManager = setUpTaskManager(ProcessingMode.AT_LEAST_ONCE, tasks, true);
 
         taskManager.shutdown(true);
-
         verify(activeTaskCreator).close();
         verify(stateUpdater).shutdown(Duration.ofMillis(Long.MAX_VALUE));
-        verify(failedStatefulTask).prepareCommit();
+        verify(tasks).addTask(failedStatefulTask);
+        verify(tasks).addTask(failedStandbyTask);
         verify(failedStatefulTask).suspend();
-        verify(failedStatefulTask).closeDirty();
+        verify(failedStatefulTask).closeClean();
     }
 
     @Test
