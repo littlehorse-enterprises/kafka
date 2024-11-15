@@ -759,6 +759,7 @@ public class Sender implements Runnable {
     private void failBatch(ProducerBatch batch,
                            ProduceResponse.PartitionResponse response,
                            boolean adjustSequenceNumbers) {
+        log.info("Failing batch " + batch);
         final RuntimeException topLevelException;
         if (response.error == Errors.TOPIC_AUTHORIZATION_FAILED)
             topLevelException = new TopicAuthorizationException(Collections.singleton(batch.topicPartition.topic()));

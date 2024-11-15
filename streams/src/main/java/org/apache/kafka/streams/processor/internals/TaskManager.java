@@ -27,7 +27,6 @@ import org.apache.kafka.common.KafkaException;
 import org.apache.kafka.common.Metric;
 import org.apache.kafka.common.MetricName;
 import org.apache.kafka.common.TopicPartition;
-import org.apache.kafka.common.errors.InvalidOffsetException;
 import org.apache.kafka.common.errors.TimeoutException;
 import org.apache.kafka.common.utils.ExponentialBackoff;
 import org.apache.kafka.common.utils.LogContext;
@@ -1082,7 +1081,7 @@ public class TaskManager {
         } catch (final LockException lockException) {
             // The state directory may still be locked by another thread, when the rebalance just happened.
             // Retry in the next iteration.
-            log.info("Encountered lock exception. Reattempting locking the state in the next iteration.", lockException);
+            log.info("Encountered lock exception. Reattempting locking the state in the next iteration.");
             tasks.addPendingTasksToInit(Collections.singleton(task));
             updateOrCreateBackoffRecord(task.id(), nowMs);
         }
@@ -1282,7 +1281,7 @@ public class TaskManager {
      * @throws TaskMigratedException if the task producer got fenced (EOS only)
      */
     void handleLostAll() {
-        log.debug("Closing lost active tasks as zombies.");
+        log.info("Closing lost active tasks as zombies.");
 
         closeRunningTasksDirty();
         removeLostActiveTasksFromStateUpdaterAndPendingTasksToInit();
@@ -1543,7 +1542,7 @@ public class TaskManager {
             throw fatalException;
         }
 
-        log.info("Shutdown complete");
+        log.info("Shutdown complete clean=" + clean);
     }
 
     private void shutdownStateUpdater() {
@@ -1614,6 +1613,7 @@ public class TaskManager {
                                                       final boolean clean,
                                                       final AtomicReference<RuntimeException> firstException) {
         if (!clean) {
+            log.info("Closing all active tasks dirty");
             return activeTaskIterable();
         }
         final Comparator<Task> byId = Comparator.comparing(Task::id);
