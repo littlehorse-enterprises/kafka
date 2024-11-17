@@ -1291,6 +1291,17 @@ public class TaskManager {
         }
     }
 
+    void handleLost(final Set<TaskId> migratedTasks) {
+        log.info("Closing lost {} active tasks as zombies.", migratedTasks);
+
+        closeRunningTasksDirty(migratedTasks);
+        removeLostActiveTasksFromStateUpdaterAndPendingTasksToInit();
+
+        if (processingMode == EXACTLY_ONCE_V2) {
+            activeTaskCreator.reInitializeProducer();
+        }
+    }
+
     private void closeRunningTasksDirty() {
         final Set<Task> allTask = tasks.allTasks();
         final Set<TaskId> allTaskIds = tasks.allTaskIds();
@@ -1303,6 +1314,23 @@ public class TaskManager {
             }
         }
         maybeUnlockTasks(allTaskIds);
+    }
+
+    private void closeRunningTasksDirty(final Set<TaskId> taskIds) {
+        final Set<Task> allTask = tasks.allTasks();
+        maybeLockTasks(taskIds);
+        for (final Task task : allTask) {
+            // Even though we've apparently dropped out of the group, we can continue safely to maintain our
+            // standby tasks while we rejoin.
+            if (task.isActive()) {
+                if (taskIds.contains(task.id())) {
+                    closeTaskDirty(task, true);
+                } else {
+                    closeTaskClean(task);
+                }
+            }
+        }
+        maybeUnlockTasks(taskIds);
     }
 
     private void removeLostActiveTasksFromStateUpdaterAndPendingTasksToInit() {

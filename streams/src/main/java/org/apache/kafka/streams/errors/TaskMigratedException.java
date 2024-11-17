@@ -17,6 +17,10 @@
 package org.apache.kafka.streams.errors;
 
 
+import org.apache.kafka.streams.processor.TaskId;
+
+import java.util.Set;
+
 /**
  * Indicates that all tasks belongs to the thread have migrated to another thread. This exception can be thrown when
  * the thread gets fenced (either by the consumer coordinator or by the transaction coordinator), which means it is
@@ -25,12 +29,24 @@ package org.apache.kafka.streams.errors;
 public class TaskMigratedException extends StreamsException {
 
     private static final long serialVersionUID = 1L;
+    private final Set<TaskId> migratedTasks;
 
     public TaskMigratedException(final String message) {
         super(message + "; it means all tasks belonging to this thread should be migrated.");
+        migratedTasks = Set.of();
     }
 
     public TaskMigratedException(final String message, final Throwable throwable) {
         super(message + "; it means all tasks belonging to this thread should be migrated.", throwable);
+        migratedTasks = Set.of();
+    }
+
+    public TaskMigratedException(final String message, final Throwable throwable, final Set<TaskId> migratedTasks) {
+        super(message + "; it means all tasks belonging to this thread should be migrated.", throwable);
+        this.migratedTasks = migratedTasks;
+    }
+
+    public Set<TaskId> migratedTasks() {
+        return migratedTasks;
     }
 }

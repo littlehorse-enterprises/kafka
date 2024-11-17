@@ -61,6 +61,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.io.TempDir;
+import org.mockito.Answers;
 import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -3160,7 +3161,7 @@ public class TaskManagerTest {
 
     @Test
     public void shouldCloseActiveTasksAndPropagateExceptionsOnCleanShutdownWithExactlyOnceV2() {
-        when(activeTaskCreator.streamsProducer()).thenReturn(mock(StreamsProducer.class));
+        when(activeTaskCreator.streamsProducer()).thenReturn(mock(StreamsProducer.class, Answers.RETURNS_DEEP_STUBS));
         shouldCloseActiveTasksAndPropagateExceptionsOnCleanShutdown(ProcessingMode.EXACTLY_ONCE_V2);
     }
 

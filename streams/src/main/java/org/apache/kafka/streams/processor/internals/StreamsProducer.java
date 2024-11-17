@@ -41,10 +41,15 @@ import org.apache.kafka.streams.errors.StreamsException;
 import org.apache.kafka.streams.errors.StreamsProducerException;
 import org.apache.kafka.streams.errors.TaskMigratedException;
 import org.apache.kafka.streams.internals.StreamsConfigUtils.ProcessingMode;
+import org.apache.kafka.streams.processor.TaskId;
 
 import org.slf4j.Logger;
 
-import java.util.*;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
@@ -93,8 +98,8 @@ public class StreamsProducer {
         return processingMode == EXACTLY_ONCE_V2;
     }
 
-    boolean transactionInFlight() {
-        return transactionInFlight.inflight;
+    Transaction transactionInFlight() {
+        return transactionInFlight;
     }
 
     /**
@@ -205,11 +210,11 @@ public class StreamsProducer {
     }
 
     Future<RecordMetadata> send(final ProducerRecord<byte[], byte[]> record,
-                                final Callback callback) {
+                                final Callback callback, final TaskId taskId) {
         maybeBeginTransaction();
         try {
             if (record.partition() != null) {
-                transactionInFlight.addInflightTopicPartition(new TopicPartition(record.topic(), record.partition()));
+                transactionInFlight.maybeAddChangelogPartition(record, taskId);
             }
             return producer.send(record, callback);
         } catch (final KafkaException uncaughtException) {
@@ -219,7 +224,7 @@ public class StreamsProducer {
                 // captured and re-wrapped as TaskMigratedException
                 throw new StreamsProducerException(
                     formatException("Producer got fenced trying to send a record"),
-                    transactionInFlight.inflightPartitions,uncaughtException
+                    transactionInFlight.associatedPartitions, uncaughtException.getCause()
                 );
             } else {
                 throw new StreamsException(
@@ -331,10 +336,13 @@ public class StreamsProducer {
         return producer;
     }
 
-    private final static class Transaction {
+    public static final class Transaction {
 
         private boolean inflight = false;
-        private final Set<TopicPartition> inflightPartitions = new HashSet<>();
+        public final Set<TaskId> associatedPartitions = new HashSet<>();
+        private Transaction() {
+
+        }
 
         private void init() {
             this.inflight = true;
@@ -342,11 +350,18 @@ public class StreamsProducer {
 
         private void end() {
             this.inflight = false;
-            inflightPartitions.clear();
+            associatedPartitions.clear();
         }
 
-        private void addInflightTopicPartition(final TopicPartition topicPartition) {
-            inflightPartitions.add(topicPartition);
+        public boolean isInflight() {
+            return inflight;
+        }
+
+        private void maybeAddChangelogPartition(final ProducerRecord<byte[], byte[]> record, final TaskId taskId) {
+            final boolean isChangelogTopic = record.topic().endsWith("-changelog");
+            if (isChangelogTopic) {
+                associatedPartitions.add(taskId);
+            }
         }
 
     }
