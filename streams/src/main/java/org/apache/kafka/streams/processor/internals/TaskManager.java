@@ -1319,6 +1319,7 @@ public class TaskManager {
     private void closeRunningTasksDirty(final Set<TaskId> taskIds) {
         final Set<Task> allTask = tasks.allTasks();
         maybeLockTasks(taskIds);
+        final Set<Task> tasksToCloseClean = new HashSet<>();
         for (final Task task : allTask) {
             // Even though we've apparently dropped out of the group, we can continue safely to maintain our
             // standby tasks while we rejoin.
@@ -1326,9 +1327,13 @@ public class TaskManager {
                 if (taskIds.contains(task.id())) {
                     closeTaskDirty(task, true);
                 } else {
-                    closeTaskClean(task);
+                    tasksToCloseClean.add(task);
                 }
             }
+        }
+        final Collection<Task> failedTasks = tryCloseCleanActiveTasks(tasksToCloseClean, true, new AtomicReference<>());
+        for (final Task task : failedTasks) {
+            closeTaskDirty(task, true);
         }
         maybeUnlockTasks(taskIds);
     }
