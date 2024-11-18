@@ -38,14 +38,18 @@ import org.apache.kafka.common.errors.UnknownProducerIdException;
 import org.apache.kafka.common.utils.LogContext;
 import org.apache.kafka.common.utils.Time;
 import org.apache.kafka.streams.errors.StreamsException;
+import org.apache.kafka.streams.errors.StreamsProducerException;
 import org.apache.kafka.streams.errors.TaskMigratedException;
 import org.apache.kafka.streams.internals.StreamsConfigUtils.ProcessingMode;
+import org.apache.kafka.streams.processor.TaskId;
 
 import org.slf4j.Logger;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
@@ -68,7 +72,7 @@ public class StreamsProducer {
     private final Time time;
 
     private Producer<byte[], byte[]> producer;
-    private boolean transactionInFlight = false;
+    private final Transaction transactionInFlight = new Transaction();
     private boolean transactionInitialized = false;
     private double oldProducerTotalBlockedTime = 0;
     // we have a single `StreamsProducer` per thread, and thus a single `sendException` instance,
@@ -94,7 +98,7 @@ public class StreamsProducer {
         return processingMode == EXACTLY_ONCE_V2;
     }
 
-    boolean transactionInFlight() {
+    Transaction transactionInFlight() {
         return transactionInFlight;
     }
 
@@ -183,10 +187,10 @@ public class StreamsProducer {
     }
 
     private void maybeBeginTransaction() {
-        if (eosEnabled() && !transactionInFlight) {
+        if (eosEnabled() && !transactionInFlight.inflight) {
             try {
                 producer.beginTransaction();
-                transactionInFlight = true;
+                transactionInFlight.init();
             } catch (final ProducerFencedException | InvalidProducerEpochException | InvalidPidMappingException error) {
                 throw new TaskMigratedException(
                     formatException("Producer got fenced trying to begin a new transaction"),
@@ -206,18 +210,21 @@ public class StreamsProducer {
     }
 
     Future<RecordMetadata> send(final ProducerRecord<byte[], byte[]> record,
-                                final Callback callback) {
+                                final Callback callback, final TaskId taskId) {
         maybeBeginTransaction();
         try {
+            if (record.partition() != null) {
+                transactionInFlight.maybeAddChangelogPartition(record, taskId);
+            }
             return producer.send(record, callback);
         } catch (final KafkaException uncaughtException) {
             if (isRecoverable(uncaughtException)) {
                 // producer.send() call may throw a KafkaException which wraps a FencedException,
                 // in this case we should throw its wrapped inner cause so that it can be
                 // captured and re-wrapped as TaskMigratedException
-                throw new TaskMigratedException(
+                throw new StreamsProducerException(
                     formatException("Producer got fenced trying to send a record"),
-                    uncaughtException.getCause()
+                    transactionInFlight.associatedPartitions, uncaughtException.getCause()
                 );
             } else {
                 throw new StreamsException(
@@ -248,7 +255,7 @@ public class StreamsProducer {
         try {
             producer.sendOffsetsToTransaction(offsets, consumerGroupMetadata);
             producer.commitTransaction();
-            transactionInFlight = false;
+            transactionInFlight.end();
         } catch (final ProducerFencedException | InvalidProducerEpochException | CommitFailedException | InvalidPidMappingException error) {
             throw new TaskMigratedException(
                 formatException("Producer got fenced trying to commit a transaction"),
@@ -272,7 +279,7 @@ public class StreamsProducer {
         if (!eosEnabled()) {
             throw new IllegalStateException(formatException("Exactly-once is not enabled"));
         }
-        if (transactionInFlight) {
+        if (transactionInFlight.inflight) {
             try {
                 producer.abortTransaction();
             } catch (final TimeoutException logAndSwallow) {
@@ -299,7 +306,7 @@ public class StreamsProducer {
                     error
                 );
             }
-            transactionInFlight = false;
+            transactionInFlight.end();
         }
     }
 
@@ -320,12 +327,42 @@ public class StreamsProducer {
 
     void close() {
         producer.close();
-        transactionInFlight = false;
+        transactionInFlight.end();
         transactionInitialized = false;
     }
 
     // for testing only
     Producer<byte[], byte[]> kafkaProducer() {
         return producer;
+    }
+
+    public static final class Transaction {
+
+        private boolean inflight = false;
+        public final Set<TaskId> associatedPartitions = new HashSet<>();
+        private Transaction() {
+
+        }
+
+        private void init() {
+            this.inflight = true;
+        }
+
+        private void end() {
+            this.inflight = false;
+            associatedPartitions.clear();
+        }
+
+        public boolean isInflight() {
+            return inflight;
+        }
+
+        private void maybeAddChangelogPartition(final ProducerRecord<byte[], byte[]> record, final TaskId taskId) {
+            final boolean isChangelogTopic = record.topic().endsWith("-changelog");
+            if (isChangelogTopic) {
+                associatedPartitions.add(taskId);
+            }
+        }
+
     }
 }

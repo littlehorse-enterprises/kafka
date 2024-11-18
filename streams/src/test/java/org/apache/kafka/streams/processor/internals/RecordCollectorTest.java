@@ -777,7 +777,7 @@ public class RecordCollectorTest {
             1,
             1
         );
-        when(streamsProducer.send(any(), any())).thenAnswer(invocation -> {
+        when(streamsProducer.send(any(), any(), any())).thenAnswer(invocation -> {
             ((Callback) invocation.getArgument(1)).onCompletion(metadata, null);
             return null;
         });
@@ -1812,7 +1812,7 @@ public class RecordCollectorTest {
         final StreamsProducer streamsProducer = mock(StreamsProducer.class);
         when(streamsProducer.eosEnabled()).thenReturn(true);
         when(streamsProducer.sendException()).thenReturn(new AtomicReference<>(null));
-        when(streamsProducer.send(any(), any())).thenAnswer(
+        when(streamsProducer.send(any(), any(), any())).thenAnswer(
             invocation -> {
                 final Callback callback = invocation.getArgument(1);
                 callback.onCompletion(null, new ProducerFencedException("KABOOM!"));

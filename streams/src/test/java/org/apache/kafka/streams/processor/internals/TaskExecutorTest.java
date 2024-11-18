@@ -20,6 +20,7 @@ import org.apache.kafka.clients.consumer.ConsumerGroupMetadata;
 import org.apache.kafka.common.utils.LogContext;
 
 import org.junit.jupiter.api.Test;
+import org.mockito.Answers;
 
 import java.util.Collections;
 
@@ -49,10 +50,10 @@ public class TaskExecutorTest {
         when(taskManager.consumerGroupMetadata()).thenReturn(groupMetadata);
 
         final TaskExecutionMetadata metadata = mock(TaskExecutionMetadata.class);
-        final StreamsProducer producer = mock(StreamsProducer.class);
+        final StreamsProducer producer = mock(StreamsProducer.class, Answers.RETURNS_DEEP_STUBS);
         when(metadata.processingMode()).thenReturn(EXACTLY_ONCE_V2);
         when(taskManager.streamsProducer()).thenReturn(producer);
-        when(producer.transactionInFlight()).thenReturn(true);
+        when(producer.transactionInFlight().isInflight()).thenReturn(true);
 
         final TaskExecutor taskExecutor = new TaskExecutor(tasks, taskManager, metadata, new LogContext());
         taskExecutor.commitOffsetsOrTransaction(Collections.emptyMap());

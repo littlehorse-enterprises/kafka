@@ -904,7 +904,7 @@ public class StreamThread extends Thread implements ProcessingThread {
                      "This implies that this thread missed a rebalance and dropped out of the consumer group. " +
                      "Will close out all assigned tasks and rejoin the consumer group.", e);
 
-        taskManager.handleLostAll();
+        taskManager.handleLost(e.migratedTasks());
         mainConsumer.unsubscribe();
         subscribeConsumer();
     }

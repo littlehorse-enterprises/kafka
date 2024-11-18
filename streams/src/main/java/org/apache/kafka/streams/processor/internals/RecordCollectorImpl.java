@@ -300,7 +300,7 @@ public class RecordCollectorImpl implements RecordCollector {
             } catch (final RuntimeException fatal) {
                 sendException.set(new StreamsException("Producer.send `Callback` failed", fatal));
             }
-        });
+        }, taskId);
     }
 
     private <K, V> void handleException(final ProductionExceptionHandler.SerializationExceptionOrigin origin,
@@ -428,9 +428,10 @@ public class RecordCollectorImpl implements RecordCollector {
                 productionException instanceof InvalidPidMappingException ||
                 productionException instanceof InvalidProducerEpochException ||
                 productionException instanceof OutOfOrderSequenceException) {
+            log.info("Task received a ProducerFencedException = " + taskId);
             errorMessage += "\nWritten offsets would not be recorded and no more records would be sent since the producer is fenced, " +
                 "indicating the task may be migrated out";
-            sendException.set(new TaskMigratedException(errorMessage, productionException));
+            sendException.set(new TaskMigratedException(errorMessage, productionException, streamsProducer.transactionInFlight().associatedPartitions));
         } else {
             final ProductionExceptionHandlerResponse response;
             try {

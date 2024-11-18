@@ -161,6 +161,7 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.atMostOnce;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
@@ -1399,7 +1400,7 @@ public class StreamThreadTest {
         consumer.seekToEnd(Collections.singletonList(t1p1));
 
         final TaskMigratedException taskMigratedException = new TaskMigratedException(
-            "Changelog restore found task migrated", new RuntimeException("restore task migrated"));
+            "Changelog restore found task migrated", new RuntimeException("restore task migrated"), Set.of(task1, task2));
         ChangelogReader changelogReader = this.changelogReader;
         if (stateUpdaterEnabled) {
             when(taskManager.checkStateUpdater(anyLong(), any())).thenAnswer(answer -> {
@@ -1454,7 +1455,7 @@ public class StreamThreadTest {
         assertEquals("No current assignment for partition topic1-1", thrown.getCause().getMessage());
         assertFalse(consumer.shouldRebalance());
 
-        verify(taskManager).handleLostAll();
+        verify(taskManager).handleLost(eq(Set.of(task1, task2)));
     }
 
     @ParameterizedTest
@@ -2770,7 +2771,7 @@ public class StreamThreadTest {
         doThrow(new TaskMigratedException("Task migrated",
                 new RuntimeException("non-corrupted task migrated"))).when(taskManager).handleCorruption(corruptedTasks);
 
-        doNothing().when(taskManager).handleLostAll();
+        doNothing().when(taskManager).handleLost(any());
 
         final StreamsMetricsImpl streamsMetrics =
             new StreamsMetricsImpl(metrics, CLIENT_ID, PROCESS_ID.toString(), mockTime);

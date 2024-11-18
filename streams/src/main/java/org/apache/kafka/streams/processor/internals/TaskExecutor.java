@@ -176,7 +176,7 @@ public class TaskExecutor {
         final Set<TaskId> corruptedTasks = new HashSet<>();
 
         if (executionMetadata.processingMode() == EXACTLY_ONCE_V2) {
-            if (!offsetsPerTask.isEmpty() || taskManager.streamsProducer().transactionInFlight()) {
+            if (!offsetsPerTask.isEmpty() || taskManager.streamsProducer().transactionInFlight().isInflight()) {
                 final Map<TopicPartition, OffsetAndMetadata> allOffsets = offsetsPerTask.values().stream()
                     .flatMap(e -> e.entrySet().stream()).collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
 

@@ -27,7 +27,6 @@ import org.apache.kafka.common.KafkaException;
 import org.apache.kafka.common.Metric;
 import org.apache.kafka.common.MetricName;
 import org.apache.kafka.common.TopicPartition;
-import org.apache.kafka.common.errors.InvalidOffsetException;
 import org.apache.kafka.common.errors.TimeoutException;
 import org.apache.kafka.common.utils.ExponentialBackoff;
 import org.apache.kafka.common.utils.LogContext;
@@ -1082,7 +1081,7 @@ public class TaskManager {
         } catch (final LockException lockException) {
             // The state directory may still be locked by another thread, when the rebalance just happened.
             // Retry in the next iteration.
-            log.info("Encountered lock exception. Reattempting locking the state in the next iteration.", lockException);
+            log.info("Encountered lock exception. Reattempting locking the state in the next iteration.");
             tasks.addPendingTasksToInit(Collections.singleton(task));
             updateOrCreateBackoffRecord(task.id(), nowMs);
         }
@@ -1282,9 +1281,20 @@ public class TaskManager {
      * @throws TaskMigratedException if the task producer got fenced (EOS only)
      */
     void handleLostAll() {
-        log.debug("Closing lost active tasks as zombies.");
+        log.info("Closing lost active tasks as zombies.");
 
         closeRunningTasksDirty();
+        removeLostActiveTasksFromStateUpdaterAndPendingTasksToInit();
+
+        if (processingMode == EXACTLY_ONCE_V2) {
+            activeTaskCreator.reInitializeProducer();
+        }
+    }
+
+    void handleLost(final Set<TaskId> migratedTasks) {
+        log.info("Closing lost {} active tasks as zombies.", migratedTasks);
+
+        closeRunningTasksDirty(migratedTasks);
         removeLostActiveTasksFromStateUpdaterAndPendingTasksToInit();
 
         if (processingMode == EXACTLY_ONCE_V2) {
@@ -1304,6 +1314,28 @@ public class TaskManager {
             }
         }
         maybeUnlockTasks(allTaskIds);
+    }
+
+    private void closeRunningTasksDirty(final Set<TaskId> taskIds) {
+        final Set<Task> allTask = tasks.allTasks();
+        maybeLockTasks(taskIds);
+        final Set<Task> tasksToCloseClean = new HashSet<>();
+        for (final Task task : allTask) {
+            // Even though we've apparently dropped out of the group, we can continue safely to maintain our
+            // standby tasks while we rejoin.
+            if (task.isActive()) {
+                if (taskIds.contains(task.id())) {
+                    closeTaskDirty(task, true);
+                } else {
+                    tasksToCloseClean.add(task);
+                }
+            }
+        }
+        final Collection<Task> failedTasks = tryCloseCleanActiveTasks(tasksToCloseClean, true, new AtomicReference<>());
+        for (final Task task : failedTasks) {
+            closeTaskDirty(task, true);
+        }
+        maybeUnlockTasks(taskIds);
     }
 
     private void removeLostActiveTasksFromStateUpdaterAndPendingTasksToInit() {
@@ -1543,7 +1575,7 @@ public class TaskManager {
             throw fatalException;
         }
 
-        log.info("Shutdown complete");
+        log.info("Shutdown complete clean=" + clean);
     }
 
     private void shutdownStateUpdater() {
@@ -1614,6 +1646,7 @@ public class TaskManager {
                                                       final boolean clean,
                                                       final AtomicReference<RuntimeException> firstException) {
         if (!clean) {
+            log.info("Closing all active tasks dirty");
             return activeTaskIterable();
         }
         final Comparator<Task> byId = Comparator.comparing(Task::id);
