@@ -716,6 +716,9 @@ class DefaultStateUpdaterTest {
         final CompletableFuture<StateUpdater.RemovedTaskResult> future2 = stateUpdater.remove(activeTask2.id());
         CompletableFuture.allOf(future1, future2).get();
 
+        verify(standbyTask, times(1)).clearTaskTimeout();
+        verify(activeTask1, never()).clearTaskTimeout();
+        verify(activeTask2, never()).clearTaskTimeout();
         final InOrder orderVerifier = inOrder(changelogReader);
         orderVerifier.verify(changelogReader, atLeast(1)).enforceRestoreActive();
         orderVerifier.verify(changelogReader).transitToUpdateStandby();

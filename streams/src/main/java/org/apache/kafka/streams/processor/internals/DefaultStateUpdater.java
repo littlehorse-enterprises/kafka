@@ -680,6 +680,7 @@ public class DefaultStateUpdater implements StateUpdater {
 
         private void transitToUpdateStandbysIfOnlyStandbysLeft() {
             if (onlyStandbyTasksUpdating()) {
+                updatingTasks.forEach((taskId, task) -> task.clearTaskTimeout());
                 changelogReader.transitToUpdateStandby();
             }
         }
