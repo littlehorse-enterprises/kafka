@@ -144,4 +144,7 @@ public interface StateStoreContext {
      */
     Map<String, Object> appConfigsWithPrefix(final String prefix);
 
+
+    boolean isMain();
+
 }

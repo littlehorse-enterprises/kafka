@@ -267,4 +267,9 @@ public class MockInternalProcessorContext<KOut, VOut> extends MockProcessorConte
             childName
         );
     }
+
+    @Override
+    public boolean isMain() {
+        return true;
+    }
 }

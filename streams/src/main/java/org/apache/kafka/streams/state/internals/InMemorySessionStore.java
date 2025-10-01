@@ -141,6 +141,11 @@ public class InMemorySessionStore implements SessionStore<Bytes, byte[]> {
     }
 
     @Override
+    public void refresh(final StateStoreContext stateStoreContext) {
+
+    }
+
+    @Override
     public Position getPosition() {
         return position;
     }

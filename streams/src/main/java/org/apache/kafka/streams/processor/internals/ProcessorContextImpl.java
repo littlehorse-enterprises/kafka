@@ -369,4 +369,9 @@ public final class ProcessorContextImpl extends AbstractProcessorContext<Object,
                 "this should not happen: " + operationName + "() is not supported in standby tasks.");
         }
     }
+
+    @Override
+    public boolean isMain() {
+        return taskType() == TaskType.ACTIVE;
+    }
 }

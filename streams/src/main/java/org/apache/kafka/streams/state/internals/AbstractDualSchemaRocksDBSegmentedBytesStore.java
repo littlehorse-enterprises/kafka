@@ -277,6 +277,11 @@ public abstract class AbstractDualSchemaRocksDBSegmentedBytesStore<S extends Seg
     }
 
     @Override
+    public void refresh(final StateStoreContext stateStoreContext) {
+
+    }
+
+    @Override
     public void flush() {
         segments.flush();
     }

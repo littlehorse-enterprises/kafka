@@ -156,4 +156,9 @@ public class GlobalProcessorContextImpl extends AbstractProcessorContext<Object,
     public void registerCacheFlushListener(final String namespace, final DirtyEntryFlushListener listener) {
         cache.addDirtyEntryFlushListener(namespace, listener);
     }
+
+    @Override
+    public boolean isMain() {
+        return true;
+    }
 }

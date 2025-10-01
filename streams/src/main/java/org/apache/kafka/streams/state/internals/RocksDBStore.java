@@ -179,6 +179,11 @@ public class RocksDBStore implements KeyValueStore<Bytes, byte[]>, BatchWritingS
             false);
     }
 
+    @Override
+    public void refresh(final StateStoreContext stateStoreContext) {
+        log.info("Refreshing store {}", name);
+    }
+
     @SuppressWarnings("unchecked")
     void openDB(final Map<String, Object> configs, final File stateDir) {
         // initialize the default rocksdb options

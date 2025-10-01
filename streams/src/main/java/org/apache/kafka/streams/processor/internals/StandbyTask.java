@@ -82,6 +82,7 @@ public class StandbyTask extends AbstractTask implements Task {
         this.processorContext = processorContext;
         this.streamsMetrics = streamsMetrics;
         processorContext.transitionToStandby(cache);
+        stateMgr.refresh(processorContext);
 
         closeTaskSensor = ThreadMetrics.closeTaskSensor(Thread.currentThread().getName(), streamsMetrics);
         updateSensor = TaskMetrics.updateSensor(Thread.currentThread().getName(), id.toString(), streamsMetrics);

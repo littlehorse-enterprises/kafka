@@ -531,6 +531,11 @@ public class MockProcessorContext<KForward, VForward> implements ProcessorContex
             public Map<String, Object> appConfigsWithPrefix(final String prefix) {
                 return MockProcessorContext.this.appConfigsWithPrefix(prefix);
             }
+
+            @Override
+            public boolean isMain() {
+                return true;
+            }
         };
     }
 }

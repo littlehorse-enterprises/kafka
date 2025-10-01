@@ -99,6 +99,11 @@ public class InMemoryKeyValueStore implements KeyValueStore<Bytes, byte[]> {
     }
 
     @Override
+    public void refresh(final StateStoreContext stateStoreContext) {
+
+    }
+
+    @Override
     public boolean persistent() {
         return false;
     }

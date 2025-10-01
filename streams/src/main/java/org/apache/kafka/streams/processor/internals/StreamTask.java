@@ -150,6 +150,7 @@ public class StreamTask extends AbstractTask implements ProcessorNodePunctuator,
 
         this.processorContext = processorContext;
         processorContext.transitionToActive(this, recordCollector, cache);
+        stateMgr.refresh(processorContext);
 
         this.time = time;
         this.recordCollector = recordCollector;

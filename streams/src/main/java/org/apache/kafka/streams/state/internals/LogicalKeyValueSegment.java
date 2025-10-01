@@ -142,6 +142,11 @@ class LogicalKeyValueSegment implements Comparable<LogicalKeyValueSegment>, Segm
     }
 
     @Override
+    public void refresh(final StateStoreContext stateStoreContext) {
+        throw new UnsupportedOperationException("cannot refresh a logical segment");
+    }
+
+    @Override
     public void flush() {
         throw new UnsupportedOperationException("nothing to flush for logical segment");
     }

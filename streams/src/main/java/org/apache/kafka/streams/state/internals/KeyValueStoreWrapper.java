@@ -127,6 +127,11 @@ public class KeyValueStoreWrapper<K, V> implements StateStore {
     }
 
     @Override
+    public void refresh(final StateStoreContext stateStoreContext) {
+        store.refresh(stateStoreContext);
+    }
+
+    @Override
     public void flush() {
         store.flush();
     }

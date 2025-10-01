@@ -143,6 +143,11 @@ public class InMemoryWindowStore implements WindowStore<Bytes, byte[]> {
     }
 
     @Override
+    public void refresh(final StateStoreContext stateStoreContext) {
+
+    }
+
+    @Override
     public Position getPosition() {
         return position;
     }

@@ -166,4 +166,9 @@ public class NoOpProcessorContext extends AbstractProcessorContext<Object, Objec
             childName
         );
     }
+
+    @Override
+    public boolean isMain() {
+        return true;
+    }
 }

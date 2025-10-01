@@ -386,6 +386,11 @@ public class RocksDBVersionedStore implements VersionedKeyValueStore<Bytes, byte
         );
     }
 
+    @Override
+    public void refresh(final StateStoreContext stateStoreContext) {
+
+    }
+
     // VisibleForTesting
     void restoreBatch(final Collection<ConsumerRecord<byte[], byte[]>> records) {
 

@@ -55,6 +55,11 @@ public class StateManagerStub implements StateManager {
     }
 
     @Override
+    public void refresh(final InternalProcessorContext<?, ?> processorContext) {
+
+    }
+
+    @Override
     public Map<TopicPartition, Long> changelogOffsets() {
         return null;
     }

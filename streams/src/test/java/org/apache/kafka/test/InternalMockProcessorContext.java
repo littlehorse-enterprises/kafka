@@ -309,6 +309,11 @@ public class InternalMockProcessorContext<KOut, VOut>
         stateManager().registerStore(store, func, checkpoint);
     }
 
+    @Override
+    public boolean isMain() {
+        return true;
+    }
+
     @SuppressWarnings("unchecked")
     @Override
     public <S extends StateStore> S getStateStore(final String name) {

@@ -281,6 +281,13 @@ public class ProcessorStateManager implements StateManager {
         return globalStores.get(name);
     }
 
+    @Override
+    public void refresh(final InternalProcessorContext<?, ?> processorContext) {
+        for (final StateStoreMetadata value : stores.values()) {
+            value.stateStore.refresh(processorContext);
+        }
+    }
+
     // package-private for test only
     void initializeStoreOffsetsFromCheckpoint(final boolean storeDirIsEmpty) {
         try {

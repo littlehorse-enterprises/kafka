@@ -278,5 +278,10 @@ public class AbstractProcessorContextTest {
                 childName
             );
         }
+
+        @Override
+        public boolean isMain() {
+            return true;
+        }
     }
 }

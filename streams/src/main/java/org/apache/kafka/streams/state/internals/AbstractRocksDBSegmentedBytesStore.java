@@ -326,6 +326,11 @@ public class AbstractRocksDBSegmentedBytesStore<S extends Segment> implements Se
     }
 
     @Override
+    public void refresh(final StateStoreContext stateStoreContext) {
+
+    }
+
+    @Override
     public void flush() {
         segments.flush();
     }

@@ -131,6 +131,11 @@ public class GlobalStateManagerImpl implements GlobalStateManager {
     }
 
     @Override
+    public void refresh(final InternalProcessorContext<?, ?> processorContext) {
+
+    }
+
+    @Override
     public Set<String> initialize() {
         try {
             checkpointFileCache.putAll(checkpointFile.read());

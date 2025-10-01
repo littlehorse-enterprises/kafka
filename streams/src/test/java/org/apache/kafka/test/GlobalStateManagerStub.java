@@ -96,6 +96,11 @@ public class GlobalStateManagerStub implements GlobalStateManager {
     }
 
     @Override
+    public void refresh(InternalProcessorContext<?, ?> processorContext) {
+
+    }
+
+    @Override
     public Map<TopicPartition, Long> changelogOffsets() {
         return offsets;
     }

@@ -57,4 +57,6 @@ public interface StateManager {
 
     // TODO: we can remove this when consolidating global state manager into processor state manager
     StateStore globalStore(final String name);
+
+    void refresh(final InternalProcessorContext<?, ?> processorContext);
 }
