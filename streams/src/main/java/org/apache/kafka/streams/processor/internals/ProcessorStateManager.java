@@ -420,7 +420,6 @@ public class ProcessorStateManager implements StateManager {
             log.warn("The registered state restore callback is also implementing the state restore listener interface, " +
                     "which is not expected and would be ignored");
         }
-
         final StateStoreMetadata storeMetadata = isLoggingEnabled(storeName) ?
             new StateStoreMetadata(
                 store,
@@ -772,7 +771,9 @@ public class ProcessorStateManager implements StateManager {
                 final long checkpointableOffset = checkpointableOffsetFromChangelogOffset(storeMetadata.offset);
                 checkpointingOffsets.put(storeMetadata.changelogPartition, checkpointableOffset);
             }
-            storeMetadata.stateStore.commit(checkpointingOffsets);
+            if (!checkpointingOffsets.isEmpty()) {
+                storeMetadata.stateStore.commit(checkpointingOffsets);
+            }
         }
 
     }

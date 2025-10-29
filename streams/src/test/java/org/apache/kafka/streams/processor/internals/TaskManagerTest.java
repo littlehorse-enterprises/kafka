@@ -58,7 +58,6 @@ import org.apache.kafka.streams.state.internals.OffsetCheckpoint;
 import org.apache.logging.log4j.Level;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.io.TempDir;
@@ -1942,7 +1941,6 @@ public class TaskManagerTest {
     }
 
     @Test
-    @Disabled
     public void shouldComputeOffsetSumForUnassignedTaskWeCanLock() throws Exception {
         final Map<TopicPartition, Long> changelogOffsets = mkMap(
             mkEntry(new TopicPartition("changelog", 0), 5L),
@@ -1952,7 +1950,7 @@ public class TaskManagerTest {
 
         expectLockObtainedFor(taskId00);
         makeTaskFolders(taskId00.toString());
-        writeCheckpointFile(taskId00, changelogOffsets);
+        when(stateDirectory.getCommitedOffsetsForLocalTasks(taskId00)).thenReturn(changelogOffsets);
 
         taskManager.handleRebalanceStart(singleton("topic"));
 
@@ -1960,7 +1958,6 @@ public class TaskManagerTest {
     }
 
     @Test
-    @Disabled
     public void shouldComputeOffsetSumFromCheckpointFileForUninitializedTask() throws Exception {
         final Map<TopicPartition, Long> changelogOffsets = mkMap(
             mkEntry(new TopicPartition("changelog", 0), 5L),
@@ -1970,7 +1967,7 @@ public class TaskManagerTest {
 
         expectLockObtainedFor(taskId00);
         makeTaskFolders(taskId00.toString());
-        writeCheckpointFile(taskId00, changelogOffsets);
+        when(stateDirectory.getCommitedOffsetsForLocalTasks(taskId00)).thenReturn(changelogOffsets);
 
         taskManager.handleRebalanceStart(singleton("topic"));
         final StateMachineTask uninitializedTask = new StateMachineTask(taskId00, taskId00Partitions, true, stateManager);
@@ -1993,14 +1990,13 @@ public class TaskManagerTest {
 
         expectLockObtainedFor(taskId00);
         makeTaskFolders(taskId00.toString());
-        writeCheckpointFile(taskId00, changelogOffsets);
 
         final StateMachineTask closedTask = new StateMachineTask(taskId00, taskId00Partitions, true, stateManager);
 
         taskManager.handleRebalanceStart(singleton("topic"));
 
         when(activeTaskCreator.createTasks(any(), eq(taskId00Assignment))).thenReturn(singleton(closedTask));
-
+        when(stateDirectory.getCommitedOffsetsForLocalTasks(taskId00)).thenReturn(changelogOffsets);
         taskManager.handleAssignment(taskId00Assignment, emptyMap());
 
         closedTask.suspend();
@@ -2021,19 +2017,17 @@ public class TaskManagerTest {
     }
 
     @Test
-    @Disabled
     public void shouldNotReportOffsetSumsAndReleaseLockForUnassignedTaskWithoutCheckpoint() throws Exception {
         expectLockObtainedFor(taskId00);
         makeTaskFolders(taskId00.toString());
         expectDirectoryNotEmpty(taskId00);
-        when(stateDirectory.checkpointFileFor(taskId00)).thenReturn(getCheckpointFile(taskId00));
+        when(stateDirectory.getCommitedOffsetsForLocalTasks(taskId00)).thenReturn(Map.of());
         taskManager.handleRebalanceStart(singleton("topic"));
 
         assertTrue(taskManager.taskOffsetSums().isEmpty());
     }
 
     @Test
-    @Disabled
     public void shouldPinOffsetSumToLongMaxValueInCaseOfOverflow() throws Exception {
         final long largeOffset = Long.MAX_VALUE / 2;
         final Map<TopicPartition, Long> changelogOffsets = mkMap(
@@ -2045,7 +2039,7 @@ public class TaskManagerTest {
 
         expectLockObtainedFor(taskId00);
         makeTaskFolders(taskId00.toString());
-        writeCheckpointFile(taskId00, changelogOffsets);
+        when(stateDirectory.getCommitedOffsetsForLocalTasks(taskId00)).thenReturn(changelogOffsets);
         taskManager.handleRebalanceStart(singleton("topic"));
 
         assertThat(taskManager.taskOffsetSums(), is(expectedOffsetSums));

@@ -550,9 +550,7 @@ public class ProcessorStateManagerTest {
     }
 
     @Test
-    @Disabled
     public void shouldFlushCheckpointAndClose() throws IOException {
-        checkpoint.write(emptyMap());
 
         // set up ack'ed offsets
         final HashMap<TopicPartition, Long> ackedOffsets = new HashMap<>();
@@ -562,9 +560,6 @@ public class ProcessorStateManagerTest {
 
         final ProcessorStateManager stateMgr = getStateManager(Task.TaskType.ACTIVE);
         try {
-            // make sure the checkpoint file is not written yet
-            assertFalse(checkpointFile.exists());
-
             stateMgr.registerStore(persistentStore, persistentStore.stateRestoreCallback, null);
             stateMgr.registerStore(nonPersistentStore, nonPersistentStore.stateRestoreCallback, null);
         } finally {
@@ -579,11 +574,8 @@ public class ProcessorStateManagerTest {
             stateMgr.updateChangelogOffsets(ackedOffsets);
             stateMgr.checkpoint();
 
-            assertTrue(checkpointFile.exists());
-
-            // the checkpoint file should contain an offset from the persistent store only.
-            final Map<TopicPartition, Long> checkpointedOffsets = checkpoint.read();
-            assertThat(checkpointedOffsets, is(singletonMap(new TopicPartition(persistentStoreTopicName, 1), 123L)));
+            final Long commitedOffset = persistentStore.committedOffset(new TopicPartition(persistentStoreTopicName, 1));
+            assertThat(commitedOffset, equalTo(123L));
 
             stateMgr.close();
 
@@ -625,13 +617,12 @@ public class ProcessorStateManagerTest {
     }
 
     @Test
-    @Disabled
     public void shouldWriteCheckpointForPersistentStore() throws IOException {
         final ProcessorStateManager stateMgr = getStateManager(Task.TaskType.ACTIVE);
 
         try {
+            persistentStore.preInit(context);
             stateMgr.registerStore(persistentStore, persistentStore.stateRestoreCallback, null);
-            stateMgr.initializeStoreOffsetsFromCheckpoint(true);
 
             final StateStoreMetadata storeMetadata = stateMgr.storeMetadata(persistentStorePartition);
             assertThat(storeMetadata, notNullValue());
@@ -640,8 +631,8 @@ public class ProcessorStateManagerTest {
 
             stateMgr.checkpoint();
 
-            final Map<TopicPartition, Long> read = checkpoint.read();
-            assertThat(read, equalTo(singletonMap(persistentStorePartition, 100L)));
+            final Long read = persistentStore.committedOffset(persistentStorePartition);
+            assertThat(read, equalTo(100L));
         } finally {
             stateMgr.close();
         }
@@ -1021,7 +1012,6 @@ public class ProcessorStateManagerTest {
     }
 
     @Test
-    @Disabled
     public void shouldNotThrowTaskCorruptedExceptionAfterCheckpointing() {
         final ProcessorStateManager stateMgr = getStateManager(Task.TaskType.ACTIVE, true);
 
