@@ -16,6 +16,7 @@
  */
 package org.apache.kafka.streams.processor;
 
+import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.annotation.InterfaceStability.Evolving;
 import org.apache.kafka.streams.errors.StreamsException;
 import org.apache.kafka.streams.processor.api.ProcessorContext;
@@ -25,6 +26,8 @@ import org.apache.kafka.streams.query.PositionBound;
 import org.apache.kafka.streams.query.Query;
 import org.apache.kafka.streams.query.QueryConfig;
 import org.apache.kafka.streams.query.QueryResult;
+
+import java.util.Map;
 
 /**
  * A storage engine for managing state maintained by a stream processor.
@@ -138,5 +141,13 @@ public interface StateStore {
         throw new UnsupportedOperationException(
             "getPosition is not implemented by this StateStore (" + getClass() + ")"
         );
+    }
+
+    default Long committedOffset(final TopicPartition partition) {
+        return null;
+    }
+
+    default void commit(final Map<TopicPartition, Long> changelogOffsets) {
+        flush();
     }
 }

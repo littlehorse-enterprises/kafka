@@ -47,7 +47,6 @@ import org.apache.kafka.streams.state.internals.OffsetCheckpoint;
 import org.slf4j.Logger;
 
 import java.io.File;
-import java.io.IOException;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -1372,13 +1371,9 @@ public class TaskManager {
         }
 
         for (final TaskId id : lockedTaskDirectoriesOfNonOwnedTasksAndClosedAndCreatedTasks) {
-            final File checkpointFile = stateDirectory.checkpointFileFor(id);
-            try {
-                if (checkpointFile.exists()) {
-                    taskOffsetSums.put(id, sumOfChangelogOffsets(id, new OffsetCheckpoint(checkpointFile).read()));
-                }
-            } catch (final IOException e) {
-                log.warn(String.format("Exception caught while trying to read checkpoint for task %s:", id), e);
+            final Map<TopicPartition, Long> commitedOffsetsForLocalTasks = stateDirectory.getCommitedOffsetsForLocalTasks(id);
+            if (!commitedOffsetsForLocalTasks.isEmpty()) {
+                taskOffsetSums.put(id, sumOfChangelogOffsets(id, commitedOffsetsForLocalTasks));
             }
         }
 

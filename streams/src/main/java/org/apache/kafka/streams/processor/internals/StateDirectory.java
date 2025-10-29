@@ -54,13 +54,13 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.nio.file.attribute.PosixFilePermission;
-import java.nio.file.attribute.PosixFilePermissions;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumSet;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -390,6 +390,22 @@ public class StateDirectory implements AutoCloseable {
      */
     File checkpointFileFor(final TaskId taskId) {
         return new File(getOrCreateDirectoryForTask(taskId), StateManagerUtil.CHECKPOINT_FILE_NAME);
+    }
+
+    Map<TopicPartition, Long> getCommitedOffsetsForLocalTasks(final TaskId taskId) {
+        final StartupState startupState = tasksForLocalState.get(taskId);
+        final Map<TopicPartition, Long> out = new HashMap<>();
+        if (startupState != null) {
+            for (final StateStore stateStore : startupState.topology.stateStores()) {
+                for (final TopicPartition changelogPartition : startupState.stateMngr.changelogPartitions()) {
+                    final Long commitedOffsets = stateStore.committedOffset(changelogPartition);
+                    if (commitedOffsets != null) {
+                        out.put(changelogPartition, commitedOffsets);
+                    }
+                }
+            }
+        }
+        return out;
     }
 
     /**

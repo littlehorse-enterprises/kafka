@@ -85,6 +85,7 @@ import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -247,7 +248,7 @@ public class StandbyTaskTest {
         assertEquals(Collections.singletonMap(partition, 11000L), task.offsetSnapshotSinceLastFlush);
 
         verify(stateManager).flush();
-        verify(stateManager).checkpoint();
+        verify(stateManager, times(3)).checkpoint();
     }
 
     @Test
@@ -270,7 +271,7 @@ public class StandbyTaskTest {
         task.prepareCommit(true);
         task.postCommit(false);  // this should not checkpoint
 
-        verify(stateManager).checkpoint();
+        verify(stateManager, times(3)).checkpoint();
     }
 
     @Test

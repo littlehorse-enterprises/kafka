@@ -751,8 +751,8 @@ public class ProcessorStateManager implements StateManager {
     @Override
     public void checkpoint() {
         // checkpoint those stores that are only logged and persistent to the checkpoint file
-        final Map<TopicPartition, Long> checkpointingOffsets = new HashMap<>();
         for (final StateStoreMetadata storeMetadata : stores.values()) {
+            final Map<TopicPartition, Long> checkpointingOffsets = new HashMap<>();
             if (storeMetadata.commitCallback != null && !storeMetadata.corrupted) {
                 try {
                     storeMetadata.commitCallback.onCommit();
@@ -769,22 +769,12 @@ public class ProcessorStateManager implements StateManager {
             if (storeMetadata.changelogPartition != null &&
                 storeMetadata.stateStore.persistent() &&
                 !storeMetadata.corrupted) {
-
                 final long checkpointableOffset = checkpointableOffsetFromChangelogOffset(storeMetadata.offset);
                 checkpointingOffsets.put(storeMetadata.changelogPartition, checkpointableOffset);
             }
+            storeMetadata.stateStore.commit(checkpointingOffsets);
         }
 
-        log.debug("Writing checkpoint: {} for task {}", checkpointingOffsets, taskId);
-        try {
-            checkpointFile.write(checkpointingOffsets);
-        } catch (final IOException e) {
-            log.warn("Failed to write offset checkpoint file to [{}]." +
-                " This may occur if OS cleaned the state.dir in case when it located in ${java.io.tmpdir} directory." +
-                " This may also occur due to running multiple instances on the same machine using the same state dir." +
-                " Changing the location of state.dir may resolve the problem.",
-                checkpointFile, e);
-        }
     }
 
     private  TopicPartition getStorePartition(final String storeName) {

@@ -1844,7 +1844,7 @@ public class StreamTaskTest {
 
         assertThat("Map was empty", task.highWaterMark().size() == 2);
 
-        verify(stateManager, times(2)).checkpoint();
+        verify(stateManager, times(3)).checkpoint();
     }
 
     @Test
@@ -2087,7 +2087,8 @@ public class StreamTaskTest {
         task.suspend();
         task.postCommit(true);
 
-        verify(stateManager, never()).checkpoint();
+        verify(stateManager, never()).flush();
+        verify(stateManager).checkpoint();
     }
 
     @Test
@@ -2123,7 +2124,7 @@ public class StreamTaskTest {
         task.suspend();
         task.postCommit(false);
 
-        verify(stateManager).checkpoint();
+        verify(stateManager, times(3)).checkpoint();
     }
 
     @Test
@@ -2266,7 +2267,7 @@ public class StreamTaskTest {
         assertEquals(Collections.singletonMap(partition1, 11000L), task.offsetSnapshotSinceLastFlush);
 
         verify(stateManager).flush();
-        verify(stateManager).checkpoint();
+        verify(stateManager, times(3)).checkpoint();
     }
 
     @Test
@@ -2298,7 +2299,7 @@ public class StreamTaskTest {
 
         assertEquals(SUSPENDED, task.state());
 
-        verify(stateManager).checkpoint();
+        verify(stateManager, times(2)).checkpoint();
     }
 
     @Test

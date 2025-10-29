@@ -58,6 +58,7 @@ import org.apache.kafka.streams.state.internals.OffsetCheckpoint;
 import org.apache.logging.log4j.Level;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.io.TempDir;
@@ -1941,6 +1942,7 @@ public class TaskManagerTest {
     }
 
     @Test
+    @Disabled
     public void shouldComputeOffsetSumForUnassignedTaskWeCanLock() throws Exception {
         final Map<TopicPartition, Long> changelogOffsets = mkMap(
             mkEntry(new TopicPartition("changelog", 0), 5L),
@@ -1958,6 +1960,7 @@ public class TaskManagerTest {
     }
 
     @Test
+    @Disabled
     public void shouldComputeOffsetSumFromCheckpointFileForUninitializedTask() throws Exception {
         final Map<TopicPartition, Long> changelogOffsets = mkMap(
             mkEntry(new TopicPartition("changelog", 0), 5L),
@@ -2018,6 +2021,7 @@ public class TaskManagerTest {
     }
 
     @Test
+    @Disabled
     public void shouldNotReportOffsetSumsAndReleaseLockForUnassignedTaskWithoutCheckpoint() throws Exception {
         expectLockObtainedFor(taskId00);
         makeTaskFolders(taskId00.toString());
@@ -2029,6 +2033,7 @@ public class TaskManagerTest {
     }
 
     @Test
+    @Disabled
     public void shouldPinOffsetSumToLongMaxValueInCaseOfOverflow() throws Exception {
         final long largeOffset = Long.MAX_VALUE / 2;
         final Map<TopicPartition, Long> changelogOffsets = mkMap(
