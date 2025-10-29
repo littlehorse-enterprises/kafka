@@ -86,11 +86,12 @@ public class RocksDBTimestampedStoreTest extends RocksDBStoreTest {
 
         final List<ColumnFamilyDescriptor> columnFamilyDescriptors = asList(
             new ColumnFamilyDescriptor(RocksDB.DEFAULT_COLUMN_FAMILY, columnFamilyOptions),
-            new ColumnFamilyDescriptor("keyValueWithTimestamp".getBytes(StandardCharsets.UTF_8), columnFamilyOptions));
+            new ColumnFamilyDescriptor("keyValueWithTimestamp".getBytes(StandardCharsets.UTF_8), columnFamilyOptions),
+            new ColumnFamilyDescriptor(RocksDBStore.CHECKPOINT_CF, columnFamilyOptions));
         final List<ColumnFamilyHandle> columnFamilies = new ArrayList<>(columnFamilyDescriptors.size());
 
         RocksDB db = null;
-        ColumnFamilyHandle noTimestampColumnFamily = null, withTimestampColumnFamily = null;
+        ColumnFamilyHandle noTimestampColumnFamily = null, withTimestampColumnFamily = null, checkpointCf = null;
         try {
             db = RocksDB.open(
                 dbOptions,
@@ -100,6 +101,7 @@ public class RocksDBTimestampedStoreTest extends RocksDBStoreTest {
 
             noTimestampColumnFamily = columnFamilies.get(0);
             withTimestampColumnFamily = columnFamilies.get(1);
+            checkpointCf = columnFamilies.get(2);
 
             assertThat(db.get(noTimestampColumnFamily, "key".getBytes()), new IsNull<>());
             assertThat(db.getLongProperty(noTimestampColumnFamily, "rocksdb.estimate-num-keys"), is(0L));
@@ -112,6 +114,9 @@ public class RocksDBTimestampedStoreTest extends RocksDBStoreTest {
             }
             if (withTimestampColumnFamily != null) {
                 withTimestampColumnFamily.close();
+            }
+            if (checkpointCf != null) {
+                checkpointCf.close();
             }
             if (db != null) {
                 db.close();
@@ -364,11 +369,13 @@ public class RocksDBTimestampedStoreTest extends RocksDBStoreTest {
 
         final List<ColumnFamilyDescriptor> columnFamilyDescriptors = asList(
             new ColumnFamilyDescriptor(RocksDB.DEFAULT_COLUMN_FAMILY, columnFamilyOptions),
-            new ColumnFamilyDescriptor("keyValueWithTimestamp".getBytes(StandardCharsets.UTF_8), columnFamilyOptions));
+            new ColumnFamilyDescriptor("keyValueWithTimestamp".getBytes(StandardCharsets.UTF_8), columnFamilyOptions),
+            new ColumnFamilyDescriptor(RocksDBStore.CHECKPOINT_CF, columnFamilyOptions)
+        );
         final List<ColumnFamilyHandle> columnFamilies = new ArrayList<>(columnFamilyDescriptors.size());
 
         RocksDB db = null;
-        ColumnFamilyHandle noTimestampColumnFamily = null, withTimestampColumnFamily = null;
+        ColumnFamilyHandle noTimestampColumnFamily = null, withTimestampColumnFamily = null, checkpointCf = null;
         boolean errorOccurred = false;
         try {
             db = RocksDB.open(
@@ -379,6 +386,7 @@ public class RocksDBTimestampedStoreTest extends RocksDBStoreTest {
 
             noTimestampColumnFamily = columnFamilies.get(0);
             withTimestampColumnFamily = columnFamilies.get(1);
+            checkpointCf = columnFamilies.get(2);
 
             assertThat(db.get(noTimestampColumnFamily, "unknown".getBytes()), new IsNull<>());
             assertThat(db.get(noTimestampColumnFamily, "key1".getBytes()), new IsNull<>());
@@ -412,6 +420,9 @@ public class RocksDBTimestampedStoreTest extends RocksDBStoreTest {
             }
             if (withTimestampColumnFamily != null) {
                 withTimestampColumnFamily.close();
+            }
+            if (checkpointCf != null) {
+                checkpointCf.close();
             }
             if (db != null) {
                 db.close();

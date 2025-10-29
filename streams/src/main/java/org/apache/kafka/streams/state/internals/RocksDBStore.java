@@ -19,6 +19,8 @@ package org.apache.kafka.streams.state.internals;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.metrics.Sensor.RecordingLevel;
+import org.apache.kafka.common.serialization.Serde;
+import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.common.utils.Bytes;
 import org.apache.kafka.common.utils.Utils;
@@ -69,6 +71,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -100,6 +103,10 @@ public class RocksDBStore implements KeyValueStore<Bytes, byte[]>, BatchWritingS
     private static final long BLOCK_CACHE_SIZE = 50 * 1024 * 1024L;
     private static final long BLOCK_SIZE = 4096L;
     private static final int MAX_WRITE_BUFFERS = 3;
+    protected static final byte[] CHECKPOINT_CF = "checkpoint".getBytes(StandardCharsets.UTF_8);
+    private static final Serde<Long> LONG_SERDE = Serdes.Long();
+    private static final Serde<String> STRING_SERDE = Serdes.String();
+
     static final String DB_FILE_DIR = "rocksdb";
 
     final String name;
@@ -112,6 +119,7 @@ public class RocksDBStore implements KeyValueStore<Bytes, byte[]>, BatchWritingS
     RocksDB db;
     DBAccessor dbAccessor;
     ColumnFamilyAccessor cfAccessor;
+    ColumnFamilyAccessor checkpointCfAccessor;
 
     // the following option objects will be created in openDB and closed in the close() method
     private RocksDBGenericOptionsToDbOptionsColumnFamilyOptionsAdapter userSpecifiedOptions;
@@ -289,10 +297,12 @@ public class RocksDBStore implements KeyValueStore<Bytes, byte[]>, BatchWritingS
                      final ColumnFamilyOptions columnFamilyOptions) {
         final List<ColumnFamilyHandle> columnFamilies = openRocksDB(
                 dbOptions,
-                new ColumnFamilyDescriptor(RocksDB.DEFAULT_COLUMN_FAMILY, columnFamilyOptions)
+                new ColumnFamilyDescriptor(RocksDB.DEFAULT_COLUMN_FAMILY, columnFamilyOptions),
+                new ColumnFamilyDescriptor(CHECKPOINT_CF, columnFamilyOptions)
         );
 
         cfAccessor = new SingleColumnFamilyAccessor(columnFamilies.get(0));
+        checkpointCfAccessor = new SingleColumnFamilyAccessor(columnFamilies.get(1));
     }
 
     /**
@@ -658,7 +668,17 @@ public class RocksDBStore implements KeyValueStore<Bytes, byte[]>, BatchWritingS
 
     @Override
     public void commit(final Map<TopicPartition, Long> changelogOffsets) {
-        log.info("Commiting transaction for store {} with changelog offsets {}", name, changelogOffsets);
+        for (final Map.Entry<TopicPartition, Long> entry : changelogOffsets.entrySet()) {
+            final byte[] key = STRING_SERDE.serializer().serialize(null, entry.getKey().toString());
+            final byte[] value = LONG_SERDE.serializer().serialize(null, entry.getValue());
+            checkpointCfAccessor.put(dbAccessor, key, value);
+            log.info("Commiting transaction for store {} with changelog offsets {}", name, entry);
+        }
+    }
+
+    @Override
+    public Long committedOffset(final TopicPartition partition) {
+        return KeyValueStore.super.committedOffset(partition);
     }
 
     @Override

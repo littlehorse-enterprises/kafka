@@ -314,9 +314,6 @@ public class ProcessorStateManager implements StateManager {
     // package-private for test only
     void initializeStoreOffsetsFromCheckpoint(final boolean storeDirIsEmpty) {
         try {
-            final Map<TopicPartition, Long> loadedCheckpoints = checkpointFile.read();
-
-            log.trace("Loaded offsets from the checkpoint file: {}", loadedCheckpoints);
 
             for (final StateStoreMetadata store : stores.values()) {
                 if (store.corrupted) {
@@ -330,38 +327,12 @@ public class ProcessorStateManager implements StateManager {
                     log.info("Initializing to the starting offset for changelog {} of in-memory state store {}",
                              store.changelogPartition, store.stateStore.name());
                 } else if (store.offset() == null) {
-                    if (loadedCheckpoints.containsKey(store.changelogPartition)) {
-                        final Long offset = changelogOffsetFromCheckpointedOffset(loadedCheckpoints.remove(store.changelogPartition));
-                        store.setOffset(offset);
+                    final Long offset = store.stateStore.committedOffset(store.changelogPartition);
+                    store.setOffset(offset);
 
-                        log.info("State store {} initialized from checkpoint with offset {} at changelog {}",
-                                  store.stateStore.name(), store.offset, store.changelogPartition);
-                    } else {
-                        // with EOS, if the previous run did not shutdown gracefully, we may lost the checkpoint file
-                        // and hence we are uncertain that the current local state only contains committed data;
-                        // in that case we need to treat it as a task-corrupted exception
-                        if (eosEnabled && !storeDirIsEmpty) {
-                            log.warn("State store {} did not find checkpoint offsets while stores are not empty, " +
-                                "since under EOS it has the risk of getting uncommitted data in stores we have to " +
-                                "treat it as a task corruption error and wipe out the local state of task {} " +
-                                "before re-bootstrapping", store.stateStore.name(), taskId);
-
-                            throw new TaskCorruptedException(Collections.singleton(taskId));
-                        } else {
-                            log.info("State store {} did not find checkpoint offset, hence would " +
-                                "default to the starting offset at changelog {}",
-                                store.stateStore.name(), store.changelogPartition);
-                        }
-                    }
-                }  else {
-                    loadedCheckpoints.remove(store.changelogPartition);
-                    log.debug("Skipping re-initialization of offset from checkpoint for recycled store {}",
-                              store.stateStore.name());
+                    log.info("State store {} initialized from checkpoint with offset {} at changelog {}",
+                            store.stateStore.name(), store.offset, store.changelogPartition);
                 }
-            }
-
-            if (!loadedCheckpoints.isEmpty()) {
-                log.warn("Some loaded checkpoint offsets cannot find their corresponding state stores: {}", loadedCheckpoints);
             }
 
             if (eosEnabled) {
