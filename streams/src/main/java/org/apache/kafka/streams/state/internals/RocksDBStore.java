@@ -142,6 +142,7 @@ public class RocksDBStore implements KeyValueStore<Bytes, byte[]>, BatchWritingS
     protected StateStoreContext context;
     protected Position position;
     private OffsetCheckpoint positionCheckpoint;
+    private RocksDBManagedOffsets managedOffsets;
     private final AtomicBoolean initialized = new AtomicBoolean(false);
 
     public RocksDBStore(final String name,
@@ -177,9 +178,8 @@ public class RocksDBStore implements KeyValueStore<Bytes, byte[]>, BatchWritingS
 
         addValueProvidersToMetricsRecorder();
 
-        final File positionCheckpointFile = new File(stateStoreContext.stateDir(), name() + ".position");
-        this.positionCheckpoint = new OffsetCheckpoint(positionCheckpointFile);
-        this.position = StoreQueryUtils.readPositionFromCheckpoint(positionCheckpoint);
+        readOffsetFromDb();
+        this.position = managedOffsets.toPosition();
 
         // value getter should always read directly from rocksDB
         // since it is only for values that are already flushed
@@ -303,6 +303,19 @@ public class RocksDBStore implements KeyValueStore<Bytes, byte[]>, BatchWritingS
 
         cfAccessor = new SingleColumnFamilyAccessor(columnFamilies.get(0));
         checkpointCfAccessor = new SingleColumnFamilyAccessor(columnFamilies.get(1));
+    }
+
+    private void readOffsetFromDb() {
+        final ManagedKeyValueIterator<Bytes, byte[]> all = checkpointCfAccessor.all(dbAccessor, true);
+        managedOffsets = new RocksDBManagedOffsets();
+        all.forEachRemaining(bytesKeyValue -> {
+            final String topicPartitionStr = STRING_SERDE.deserializer().deserialize(null, bytesKeyValue.key.get());
+            final Long offset = LONG_SERDE.deserializer().deserialize(null, bytesKeyValue.value);
+            final String[] split = topicPartitionStr.split("/");
+            final String topic = split[0];
+            final Integer partition = Integer.parseInt(split[1]);
+            managedOffsets.put(new TopicPartition(topic, partition), offset);
+        });
     }
 
     /**
@@ -657,7 +670,8 @@ public class RocksDBStore implements KeyValueStore<Bytes, byte[]>, BatchWritingS
     @Override
     public void commit(final Map<TopicPartition, Long> changelogOffsets) {
         for (final Map.Entry<TopicPartition, Long> entry : changelogOffsets.entrySet()) {
-            final byte[] key = STRING_SERDE.serializer().serialize(null, entry.getKey().toString());
+            final String keyStr = String.format("%s/%d", entry.getKey().topic(), entry.getKey().partition());
+            final byte[] key = STRING_SERDE.serializer().serialize(null, keyStr);
             final byte[] value = LONG_SERDE.serializer().serialize(null, entry.getValue());
             checkpointCfAccessor.put(dbAccessor, key, value);
             log.info("Commiting transaction for store {} with changelog offsets {}", name, entry);
@@ -667,6 +681,10 @@ public class RocksDBStore implements KeyValueStore<Bytes, byte[]>, BatchWritingS
     @Override
     public Long committedOffset(final TopicPartition partition) {
         return KeyValueStore.super.committedOffset(partition);
+    }
+
+    private void loadPosition() {
+
     }
 
     @Override
