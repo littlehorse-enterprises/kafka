@@ -103,14 +103,13 @@ public class StateManagerUtilTest {
         when(topology.stateStores()).thenReturn(stateStores);
         when(stateManager.taskId()).thenReturn(taskId);
         when(stateDirectory.lock(taskId)).thenReturn(true);
-        when(stateDirectory.directoryForTaskIsEmpty(taskId)).thenReturn(true);
         when(topology.stateStores()).thenReturn(stateStores);
 
         StateManagerUtil.registerStateStores(logger, "logPrefix:",
             topology, stateManager, stateDirectory, processorContext);
 
         inOrder.verify(stateManager).registerStateStores(stateStores, processorContext);
-        inOrder.verify(stateManager).initializeStoreOffsetsFromCheckpoint(true);
+        inOrder.verify(stateManager).initializeStoreOffsetsFromCheckpoint();
         verifyNoMoreInteractions(stateManager);
     }
 

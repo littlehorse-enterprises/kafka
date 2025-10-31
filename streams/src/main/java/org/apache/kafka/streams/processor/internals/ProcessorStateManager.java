@@ -32,7 +32,6 @@ import org.apache.kafka.streams.processor.StateStore;
 import org.apache.kafka.streams.processor.TaskId;
 import org.apache.kafka.streams.processor.internals.Task.TaskType;
 import org.apache.kafka.streams.state.internals.CachedStateStore;
-import org.apache.kafka.streams.state.internals.OffsetCheckpoint;
 import org.apache.kafka.streams.state.internals.RecordConverter;
 import org.apache.kafka.streams.state.internals.TimeOrderedKeyValueBuffer;
 
@@ -181,7 +180,6 @@ public class ProcessorStateManager implements StateManager {
     private final FixedOrderMap<String, StateStore> globalStores = new FixedOrderMap<>();
 
     private final File baseDir;
-    private final OffsetCheckpoint checkpointFile;
     private final boolean stateUpdaterEnabled;
 
     private TaskType taskType;
@@ -221,7 +219,6 @@ public class ProcessorStateManager implements StateManager {
         this.stateUpdaterEnabled = stateUpdaterEnabled;
 
         this.baseDir = stateDirectory.getOrCreateDirectoryForTask(taskId);
-        this.checkpointFile = new OffsetCheckpoint(stateDirectory.checkpointFileFor(taskId));
 
         log.debug("Created state store manager for task {}", taskId);
         this.startupState = new AtomicBoolean(startupState);
@@ -312,7 +309,7 @@ public class ProcessorStateManager implements StateManager {
     }
 
     // package-private for test only
-    void initializeStoreOffsetsFromCheckpoint(final boolean storeDirIsEmpty) {
+    void initializeStoreOffsetsFromCheckpoint() {
         try {
 
             for (final StateStoreMetadata store : stores.values()) {
@@ -334,17 +331,10 @@ public class ProcessorStateManager implements StateManager {
                             store.stateStore.name(), store.offset, store.changelogPartition);
                 }
             }
-
-            if (eosEnabled) {
-                checkpointFile.delete();
-            }
         } catch (final TaskCorruptedException e) {
             throw e;
-        } catch (final IOException | RuntimeException e) {
-            // both IOException or runtime exception like number parsing can throw
-            throw new ProcessorStateException(format("%sError loading and deleting checkpoint file when creating the state manager",
-                logPrefix), e);
         }
+
     }
 
     private void maybeRegisterStoreWithChangelogReader(final String storeName) {
@@ -806,9 +796,4 @@ public class ProcessorStateManager implements StateManager {
         return storeToChangelogTopic.get(storeName);
     }
 
-    public void deleteCheckPointFileIfEOSEnabled() throws IOException {
-        if (eosEnabled) {
-            checkpointFile.delete();
-        }
-    }
 }

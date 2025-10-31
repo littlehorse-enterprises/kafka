@@ -79,7 +79,7 @@ public interface StateStore {
     /**
      * Flush any cached data
      */
-    void flush();
+    default void flush() {}
 
     /**
      * Close the storage engine.

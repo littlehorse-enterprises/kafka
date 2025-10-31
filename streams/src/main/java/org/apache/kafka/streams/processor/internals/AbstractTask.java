@@ -99,7 +99,6 @@ public abstract class AbstractTask implements Task {
         if (StateManagerUtil.checkpointNeeded(enforceCheckpoint, offsetSnapshotSinceLastFlush, offsetSnapshot)) {
             // the state's current offset would be used to checkpoint
             stateMgr.flush();
-//            stateMgr.checkpoint();
             offsetSnapshotSinceLastFlush = new HashMap<>(offsetSnapshot);
         }
     }

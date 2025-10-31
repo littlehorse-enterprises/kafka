@@ -187,7 +187,7 @@ public class RocksDBStore implements KeyValueStore<Bytes, byte[]>, BatchWritingS
         stateStoreContext.register(
             root,
             (RecordBatchingStateRestoreCallback) this::restoreBatch,
-            () -> StoreQueryUtils.checkpointPosition(positionCheckpoint, position)
+            () -> { }
         );
         consistencyEnabled = StreamsConfig.InternalConfig.getBoolean(
             stateStoreContext.appConfigs(),
@@ -655,18 +655,6 @@ public class RocksDBStore implements KeyValueStore<Bytes, byte[]>, BatchWritingS
     }
 
     @Override
-    public synchronized void flush() {
-        if (db == null) {
-            return;
-        }
-        try {
-            cfAccessor.flush(dbAccessor);
-        } catch (final RocksDBException e) {
-            throw new ProcessorStateException("Error while executing flush from store " + name, e);
-        }
-    }
-
-    @Override
     public void commit(final Map<TopicPartition, Long> changelogOffsets) {
         for (final Map.Entry<TopicPartition, Long> entry : changelogOffsets.entrySet()) {
             final byte[] key = STRING_SERDE.serializer().serialize(null, entry.getKey().toString());
@@ -718,6 +706,11 @@ public class RocksDBStore implements KeyValueStore<Bytes, byte[]>, BatchWritingS
             metricsRecorder.removeValueProviders(name);
         }
 
+        try {
+            cfAccessor.flush(dbAccessor);
+        } catch (final RocksDBException e) {
+            throw new ProcessorStateException("Error while executing flush from store " + name, e);
+        }
         // Important: do not rearrange the order in which the below objects are closed!
         // Order of closing must follow: ColumnFamilyHandle > RocksDB > DBOptions > ColumnFamilyOptions
         cfAccessor.close();

@@ -424,7 +424,7 @@ public class ProcessorStateManagerTest {
             stateMgr.registerStore(persistentStore, persistentStore.stateRestoreCallback, null);
             stateMgr.registerStore(persistentStoreTwo, persistentStoreTwo.stateRestoreCallback, null);
             stateMgr.registerStore(nonPersistentStore, nonPersistentStore.stateRestoreCallback, null);
-            stateMgr.initializeStoreOffsetsFromCheckpoint(true);
+            stateMgr.initializeStoreOffsetsFromCheckpoint();
 
             assertEquals(Set.of(
                 persistentStorePartition,
@@ -459,7 +459,7 @@ public class ProcessorStateManagerTest {
             stateMgr.registerStore(persistentStore, persistentStore.stateRestoreCallback, null);
             stateMgr.registerStore(persistentStoreTwo, persistentStoreTwo.stateRestoreCallback, null);
             stateMgr.registerStore(nonPersistentStore, nonPersistentStore.stateRestoreCallback, null);
-            stateMgr.initializeStoreOffsetsFromCheckpoint(true);
+            stateMgr.initializeStoreOffsetsFromCheckpoint();
 
             assertEquals(Set.of(
                     persistentStorePartition,
@@ -578,7 +578,7 @@ public class ProcessorStateManagerTest {
         try {
             persistentStore.commit(offsets);
             stateMgr.registerStore(persistentStore, persistentStore.stateRestoreCallback, null);
-            stateMgr.initializeStoreOffsetsFromCheckpoint(true);
+            stateMgr.initializeStoreOffsetsFromCheckpoint();
 
             final StateStoreMetadata storeMetadata = stateMgr.storeMetadata(persistentStorePartition);
             assertThat(storeMetadata, notNullValue());
@@ -630,7 +630,7 @@ public class ProcessorStateManagerTest {
 
         try {
             stateMgr.registerStore(nonPersistentStore, nonPersistentStore.stateRestoreCallback, null);
-            stateMgr.initializeStoreOffsetsFromCheckpoint(true);
+            stateMgr.initializeStoreOffsetsFromCheckpoint();
 
             final StateStoreMetadata storeMetadata = stateMgr.storeMetadata(nonPersistentStorePartition);
             assertThat(storeMetadata, notNullValue());
@@ -861,7 +861,7 @@ public class ProcessorStateManagerTest {
         writer.close();
 
         try {
-            stateMgr.initializeStoreOffsetsFromCheckpoint(true);
+            stateMgr.initializeStoreOffsetsFromCheckpoint();
             fail("should have thrown processor state exception when IO exception happens");
         } catch (final ProcessorStateException e) {
             // pass
@@ -966,7 +966,7 @@ public class ProcessorStateManagerTest {
             stateMgr.registerStore(nonPersistentStore, nonPersistentStore.stateRestoreCallback, null);
 
             final TaskCorruptedException exception = assertThrows(TaskCorruptedException.class,
-                () -> stateMgr.initializeStoreOffsetsFromCheckpoint(false));
+                () -> stateMgr.initializeStoreOffsetsFromCheckpoint());
 
             assertEquals(
                 Collections.singleton(taskId),
@@ -993,7 +993,7 @@ public class ProcessorStateManagerTest {
             stateMgr.registerStore(persistentStore, persistentStore.stateRestoreCallback, null);
             stateMgr.registerStore(nonPersistentStore, nonPersistentStore.stateRestoreCallback, null);
 
-            stateMgr.initializeStoreOffsetsFromCheckpoint(false);
+            stateMgr.initializeStoreOffsetsFromCheckpoint();
         } finally {
             stateMgr.close();
         }
@@ -1036,36 +1036,6 @@ public class ProcessorStateManagerTest {
         final ProcessorStateManager stateMgr = getStateManager(Task.TaskType.ACTIVE, true);
 
         stateMgr.close();
-    }
-
-    @Test
-    public void shouldDeleteCheckPointFileIfEosEnabled() throws IOException {
-        final long checkpointOffset = 10L;
-        final Map<TopicPartition, Long> offsets = mkMap(
-                mkEntry(persistentStorePartition, checkpointOffset),
-                mkEntry(nonPersistentStorePartition, checkpointOffset),
-                mkEntry(irrelevantPartition, 999L)
-        );
-        checkpoint.write(offsets);
-        final ProcessorStateManager stateMgr = getStateManager(Task.TaskType.ACTIVE, true);
-        stateMgr.deleteCheckPointFileIfEOSEnabled();
-        stateMgr.close();
-        assertFalse(checkpointFile.exists());
-    }
-
-    @Test
-    public void shouldNotDeleteCheckPointFileIfEosNotEnabled() throws IOException {
-        final long checkpointOffset = 10L;
-        final Map<TopicPartition, Long> offsets = mkMap(
-                mkEntry(persistentStorePartition, checkpointOffset),
-                mkEntry(nonPersistentStorePartition, checkpointOffset),
-                mkEntry(irrelevantPartition, 999L)
-        );
-        checkpoint.write(offsets);
-        final ProcessorStateManager stateMgr = getStateManager(Task.TaskType.ACTIVE, false);
-        stateMgr.deleteCheckPointFileIfEOSEnabled();
-        stateMgr.close();
-        assertTrue(checkpointFile.exists());
     }
 
     @Test
