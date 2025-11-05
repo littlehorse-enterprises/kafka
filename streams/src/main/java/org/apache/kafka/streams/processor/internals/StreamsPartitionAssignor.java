@@ -1458,6 +1458,14 @@ public class StreamsPartitionAssignor implements ConsumerPartitionAssignor, Conf
 
     @Override
     public void onAssignment(final Assignment assignment, final ConsumerGroupMetadata metadata) {
+        taskManager.commit(
+            taskManager.allOwnedTasks()
+                .values()
+                .stream()
+                .filter(t -> t.commitNeeded())
+                .collect(Collectors.toSet())
+        );
+
         final List<TopicPartition> partitions = new ArrayList<>(assignment.partitions());
         partitions.sort(PARTITION_COMPARATOR);
 
