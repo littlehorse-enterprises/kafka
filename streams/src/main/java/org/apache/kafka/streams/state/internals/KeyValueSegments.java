@@ -47,8 +47,7 @@ class KeyValueSegments extends AbstractSegments<KeyValueSegment> {
             if (segments.put(segmentId, newSegment) != null) {
                 throw new IllegalStateException("KeyValueSegment already exists. Possible concurrent access.");
             }
-
-            newSegment.openDB(context.appConfigs(), context.stateDir());
+            newSegment.preInit(context);
             return newSegment;
         }
     }

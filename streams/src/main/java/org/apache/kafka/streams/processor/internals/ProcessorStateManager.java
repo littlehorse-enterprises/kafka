@@ -288,6 +288,7 @@ public class ProcessorStateManager implements StateManager {
                     store.preInit(processorContext);
                     startupStores.put(store.name(), store);
                 } else {
+                    store.preInit(processorContext);
                     store.init(processorContext, store);
                     startupStores.remove(store.name());
                 }

@@ -98,6 +98,7 @@ public class SubscriptionReceiveProcessorSupplierTest {
                         Change<ValueAndTimestamp<SubscriptionWrapper<String>>>> processor = supplier.get();
         stateStore = storeBuilder.build();
         context.addStateStore(stateStore);
+        stateStore.preInit(context);
         stateStore.init(context, stateStore);
 
         final SubscriptionWrapper<String> oldWrapper = new SubscriptionWrapper<>(
@@ -150,6 +151,7 @@ public class SubscriptionReceiveProcessorSupplierTest {
             Change<ValueAndTimestamp<SubscriptionWrapper<String>>>> processor = supplier.get();
         stateStore = storeBuilder.build();
         context.addStateStore(stateStore);
+        stateStore.preInit(context);
         stateStore.init(context, stateStore);
         final SubscriptionWrapper<String> oldWrapper = new SubscriptionWrapper<>(
             new long[]{1L, 2L},
@@ -201,6 +203,7 @@ public class SubscriptionReceiveProcessorSupplierTest {
             Change<ValueAndTimestamp<SubscriptionWrapper<String>>>> processor = supplier.get();
         stateStore = storeBuilder.build();
         context.addStateStore(stateStore);
+        stateStore.preInit(context);
         stateStore.init(context, stateStore);
 
         final SubscriptionWrapper<String> oldWrapper = new SubscriptionWrapper<>(
@@ -253,6 +256,7 @@ public class SubscriptionReceiveProcessorSupplierTest {
             Change<ValueAndTimestamp<SubscriptionWrapper<String>>>> processor = supplier.get();
         stateStore = storeBuilder.build();
         context.addStateStore(stateStore);
+        stateStore.preInit(context);
         stateStore.init(context, stateStore);
 
         final SubscriptionWrapper<String> oldWrapper = new SubscriptionWrapper<>(
@@ -305,6 +309,7 @@ public class SubscriptionReceiveProcessorSupplierTest {
             Change<ValueAndTimestamp<SubscriptionWrapper<String>>>> processor = supplier.get();
         stateStore = storeBuilder.build();
         context.addStateStore(stateStore);
+        stateStore.preInit(context);
         stateStore.init(context, stateStore);
 
         final SubscriptionWrapper<String> oldWrapper = new SubscriptionWrapper<>(
@@ -357,6 +362,7 @@ public class SubscriptionReceiveProcessorSupplierTest {
             Change<ValueAndTimestamp<SubscriptionWrapper<String>>>> processor = supplier.get();
         stateStore = storeBuilder.build();
         context.addStateStore(stateStore);
+        stateStore.preInit(context);
         stateStore.init(context, stateStore);
 
         final SubscriptionWrapper<String> oldWrapper = new SubscriptionWrapper<>(
@@ -409,6 +415,7 @@ public class SubscriptionReceiveProcessorSupplierTest {
             Change<ValueAndTimestamp<SubscriptionWrapper<String>>>> processor = supplier.get();
         stateStore = storeBuilder.build();
         context.addStateStore(stateStore);
+        stateStore.preInit(context);
         stateStore.init(context, stateStore);
 
         final SubscriptionWrapper<String> oldWrapper = new SubscriptionWrapper<>(
@@ -461,6 +468,7 @@ public class SubscriptionReceiveProcessorSupplierTest {
             Change<ValueAndTimestamp<SubscriptionWrapper<String>>>> processor = supplier.get();
         stateStore = storeBuilder.build();
         context.addStateStore(stateStore);
+        stateStore.preInit(context);
         stateStore.init(context, stateStore);
 
         final SubscriptionWrapper<String> oldWrapper = new SubscriptionWrapper<>(

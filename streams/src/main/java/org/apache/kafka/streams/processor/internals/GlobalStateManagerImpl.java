@@ -142,6 +142,7 @@ public class GlobalStateManagerImpl implements GlobalStateManager {
         for (final StateStore stateStore : topology.globalStateStores()) {
             final String sourceTopic = storeToChangelogTopic.get(stateStore.name());
             changelogTopics.add(sourceTopic);
+            stateStore.preInit(globalProcessorContext);
             stateStore.init(globalProcessorContext, stateStore);
         }
 

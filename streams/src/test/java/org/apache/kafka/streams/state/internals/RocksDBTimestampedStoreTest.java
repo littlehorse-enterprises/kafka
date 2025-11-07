@@ -21,6 +21,8 @@ import org.apache.kafka.common.serialization.StringSerializer;
 import org.apache.kafka.common.utils.Bytes;
 import org.apache.kafka.common.utils.LogCaptureAppender;
 import org.apache.kafka.streams.KeyValue;
+import org.apache.kafka.streams.processor.StateStore;
+import org.apache.kafka.streams.processor.StateStoreContext;
 import org.apache.kafka.streams.state.KeyValueIterator;
 
 import org.hamcrest.core.IsNull;
@@ -48,7 +50,13 @@ public class RocksDBTimestampedStoreTest extends RocksDBStoreTest {
     private final Serializer<String> stringSerializer = new StringSerializer();
 
     RocksDBStore getRocksDBStore() {
-        return new RocksDBTimestampedStore(DB_NAME, METRICS_SCOPE);
+        return new RocksDBTimestampedStore(DB_NAME, METRICS_SCOPE) {
+            @Override
+            public void init(final StateStoreContext stateStoreContext, final StateStore root) {
+                super.preInit(stateStoreContext);
+                super.init(stateStoreContext, root);
+            }
+        };
     }
 
     @Test
@@ -478,6 +486,7 @@ public class RocksDBTimestampedStoreTest extends RocksDBStoreTest {
     private void prepareOldStore() {
         final RocksDBStore keyValueStore = new RocksDBStore(DB_NAME, METRICS_SCOPE);
         try {
+            keyValueStore.preInit(context);
             keyValueStore.init(context, keyValueStore);
 
             keyValueStore.put(new Bytes("key1".getBytes()), "1".getBytes());

@@ -89,6 +89,7 @@ public class CachingInMemoryKeyValueStoreTest extends AbstractKeyValueStoreTest 
         cache = new ThreadCache(new LogContext("testCache "), maxCacheSizeBytes, new MockStreamsMetrics(new Metrics()));
         context = new InternalMockProcessorContext<>(null, null, null, null, cache);
         context.setRecordContext(new ProcessorRecordContext(10, 0, 0, TOPIC, new RecordHeaders()));
+        store.preInit(context);
         store.init(context, null);
     }
 
@@ -102,6 +103,7 @@ public class CachingInMemoryKeyValueStoreTest extends AbstractKeyValueStoreTest 
                 .withCachingEnabled();
 
         final KeyValueStore<K, V> store = storeBuilder.build();
+        store.preInit(context);
         store.init(context, store);
         return store;
     }
@@ -182,6 +184,7 @@ public class CachingInMemoryKeyValueStoreTest extends AbstractKeyValueStoreTest 
         cache = mock(ThreadCache.class);
         context = new InternalMockProcessorContext<>(TestUtils.tempDirectory(), null, null, null, cache);
         context.setRecordContext(new ProcessorRecordContext(10, 0, 0, TOPIC, new RecordHeaders()));
+        store.preInit(context);
         store.init(context, store);
     }
 

@@ -173,7 +173,7 @@ public class RocksDBStore implements KeyValueStore<Bytes, byte[]>, BatchWritingS
         // open the DB dir
         metricsRecorder.init(metricsImpl(stateStoreContext), stateStoreContext.taskId());
         if (!open) {
-            preInit(stateStoreContext);
+            throw new IllegalStateException("Store " + name + " is not open");
         }
 
         addValueProvidersToMetricsRecorder();
@@ -201,7 +201,7 @@ public class RocksDBStore implements KeyValueStore<Bytes, byte[]>, BatchWritingS
     }
 
     @SuppressWarnings("unchecked")
-    void openDB(final Map<String, Object> configs, final File stateDir) {
+    final void openDB(final Map<String, Object> configs, final File stateDir) {
         // initialize the default rocksdb options
 
         final DBOptions dbOptions = new DBOptions();
