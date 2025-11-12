@@ -178,8 +178,7 @@ public class RocksDBStore implements KeyValueStore<Bytes, byte[]>, BatchWritingS
 
         addValueProvidersToMetricsRecorder();
 
-        readOffsetFromDb();
-        this.position = managedOffsets.toPosition();
+
 
         // value getter should always read directly from rocksDB
         // since it is only for values that are already flushed
@@ -262,6 +261,8 @@ public class RocksDBStore implements KeyValueStore<Bytes, byte[]>, BatchWritingS
         openRocksDB(dbOptions, columnFamilyOptions);
         dbAccessor = new DirectDBAccessor(db, fOptions, wOptions);
         open = true;
+        readOffsetFromDb();
+        this.position = managedOffsets.toPosition();
 
     }
 

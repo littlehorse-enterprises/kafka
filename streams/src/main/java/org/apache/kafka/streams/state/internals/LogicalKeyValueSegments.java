@@ -16,6 +16,7 @@
  */
 package org.apache.kafka.streams.state.internals;
 
+import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.streams.processor.StateStoreContext;
 import org.apache.kafka.streams.processor.internals.ProcessorContextUtils;
 import org.apache.kafka.streams.query.Position;
@@ -58,6 +59,11 @@ public class LogicalKeyValueSegments extends AbstractSegments<LogicalKeyValueSeg
     @Override
     public void setPosition(final Position position) {
         this.physicalStore.position = position;
+    }
+
+    @Override
+    public Position getPosition() {
+        return this.physicalStore.position;
     }
 
     @Override
@@ -116,6 +122,11 @@ public class LogicalKeyValueSegments extends AbstractSegments<LogicalKeyValueSeg
     @Override
     public void flush() {
         physicalStore.flush();
+    }
+
+    @Override
+    public void commit(final Map<TopicPartition, Long> changelogOffsets) {
+        physicalStore.commit(changelogOffsets);
     }
 
     @Override

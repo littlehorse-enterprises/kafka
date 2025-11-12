@@ -16,9 +16,11 @@
  */
 package org.apache.kafka.streams.state.internals;
 
+import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.streams.processor.StateStoreContext;
 
 import java.util.List;
+import java.util.Map;
 
 interface Segments<S extends Segment> {
 
@@ -39,6 +41,10 @@ interface Segments<S extends Segment> {
     List<S> allSegments(final boolean forward);
 
     void flush();
+
+    default void commit(final Map<TopicPartition, Long> changelogOffsets) {
+        flush();
+    }
 
     void close();
 }
