@@ -89,6 +89,7 @@ public class RocksDBVersionedStoreTest {
         );
 
         store = new RocksDBVersionedStore(STORE_NAME, METRICS_SCOPE, HISTORY_RETENTION, SEGMENT_INTERVAL);
+        store.preInit(context);
         store.init(context, store);
     }
 
@@ -800,6 +801,7 @@ public class RocksDBVersionedStoreTest {
         // recreate store with zero history retention
         store.close();
         store = new RocksDBVersionedStore(STORE_NAME, METRICS_SCOPE, 0L, SEGMENT_INTERVAL);
+        store.preInit(context);
         store.init(context, store);
 
         // put and get

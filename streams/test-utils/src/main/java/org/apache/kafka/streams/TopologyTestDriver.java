@@ -512,7 +512,12 @@ public class TopologyTestDriver implements Closeable {
                 logContext,
                 false
                 );
-            task.initializeIfNeeded();
+            try {
+                task.initializeIfNeeded();
+            } catch (RuntimeException e) {
+                processorTopology.openStores(context);
+                throw e;
+            }
             task.completeRestoration(noOpResetter -> { });
             for (final TopicPartition tp: task.inputPartitions()) {
                 task.updateNextOffsets(tp, new OffsetAndMetadata(0, Optional.empty(), ""));

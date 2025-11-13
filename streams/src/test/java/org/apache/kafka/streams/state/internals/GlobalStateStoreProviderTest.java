@@ -117,6 +117,7 @@ public class GlobalStateStoreProviderTest {
         when(mockContext.taskId()).thenReturn(new TaskId(0, 0));
         when(mockContext.appConfigs()).thenReturn(CONFIGS);
         for (final StateStore store : stores.values()) {
+            store.preInit(mockContext);
             store.init(mockContext, null);
         }
     }

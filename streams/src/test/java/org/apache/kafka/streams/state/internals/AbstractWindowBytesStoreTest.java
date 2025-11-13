@@ -115,7 +115,7 @@ public abstract class AbstractWindowBytesStoreTest {
                 0,
                 new MockStreamsMetrics(new Metrics())));
         context.setTime(1L);
-
+        windowStore.preInit(context);
         windowStore.init(context, windowStore);
     }
 
@@ -762,6 +762,7 @@ public abstract class AbstractWindowBytesStoreTest {
     public void testPutSameKeyTimestamp() {
         windowStore.close();
         windowStore = buildWindowStore(RETENTION_PERIOD, WINDOW_SIZE, true, Serdes.Integer(), Serdes.String());
+        windowStore.preInit(context);
         windowStore.init(context, windowStore);
 
         windowStore.put(0, "zero", defaultStartTime);
@@ -844,6 +845,7 @@ public abstract class AbstractWindowBytesStoreTest {
             Serdes.String(),
             Serdes.String());
 
+        windowStore.preInit(context);
         windowStore.init(context, windowStore);
 
         windowStore.put("a", "0001", 0);
@@ -919,6 +921,7 @@ public abstract class AbstractWindowBytesStoreTest {
             true,
             Serdes.Bytes(),
             Serdes.String());
+        windowStore.preInit(context);
         windowStore.init(context, windowStore);
 
         final Bytes key1 = Bytes.wrap(new byte[] {0});
@@ -1000,6 +1003,7 @@ public abstract class AbstractWindowBytesStoreTest {
         final Time time = Time.SYSTEM;
         context.setSystemTimeMs(time.milliseconds());
         context.setTime(1L);
+        windowStore.preInit(context);
         windowStore.init(context, windowStore);
 
         // Advance stream time by inserting record with large enough timestamp that records with timestamp 0 are expired
@@ -1110,6 +1114,7 @@ public abstract class AbstractWindowBytesStoreTest {
     public void testFetchDuplicates() {
         windowStore.close();
         windowStore = buildWindowStore(RETENTION_PERIOD, WINDOW_SIZE, true, Serdes.Integer(), Serdes.String());
+        windowStore.preInit(context);
         windowStore.init(context, windowStore);
 
         long currentTime = 0;

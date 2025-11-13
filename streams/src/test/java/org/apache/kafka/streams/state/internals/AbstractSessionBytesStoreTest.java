@@ -669,7 +669,7 @@ public abstract class AbstractSessionBytesStoreTest {
     public void shouldFetchAndIterateOverExactBinaryKeys() {
         final SessionStore<Bytes, String> sessionStore =
             buildSessionStore(RETENTION_PERIOD, Serdes.Bytes(), Serdes.String());
-
+        sessionStore.preInit(context);
         sessionStore.init(context, sessionStore);
 
         final Bytes key1 = Bytes.wrap(new byte[] {0});
