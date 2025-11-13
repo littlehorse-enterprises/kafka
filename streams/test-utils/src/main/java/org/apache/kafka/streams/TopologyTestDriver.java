@@ -495,7 +495,7 @@ public class TopologyTestDriver implements Closeable {
                 cache
             );
             context.setRecordContext(new ProcessorRecordContext(0L, -1L, -1, null, new RecordHeaders()));
-
+            processorTopology.openStores(context);
             task = new StreamTask(
                 TASK_ID,
                 new HashSet<>(partitionsByInputTopic.values()),

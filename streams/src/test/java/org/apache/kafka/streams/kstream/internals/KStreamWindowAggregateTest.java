@@ -1039,6 +1039,7 @@ public class KStreamWindowAggregateTest {
 
         // Create, initialize, and register the state store.
         final TimestampedWindowStore<String, String> store = getWindowStore(windowSize);
+        store.preInit(context);
         store.init(context, store);
         context.getStateStoreContext().register(store, null);
 

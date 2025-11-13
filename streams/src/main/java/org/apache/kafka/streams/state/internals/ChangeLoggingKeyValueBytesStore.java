@@ -40,6 +40,12 @@ public class ChangeLoggingKeyValueBytesStore
     }
 
     @Override
+    public void preInit(final StateStoreContext stateStoreContext) {
+        internalContext = asInternalProcessorContext(stateStoreContext);
+        super.preInit(stateStoreContext);
+    }
+
+    @Override
     public void init(final StateStoreContext stateStoreContext,
                      final StateStore root) {
         internalContext = asInternalProcessorContext(stateStoreContext);

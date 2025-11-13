@@ -632,6 +632,12 @@ public class StreamTask extends AbstractTask implements ProcessorNodePunctuator,
         super.maybeCheckpoint(enforceCheckpoint);
     }
 
+    @Override
+    public void revive() {
+        super.revive();
+        topology.openStores(processorContext);
+    }
+
     private void validateClean() {
         // It may be that we failed to commit a task during handleRevocation, but "forgot" this and tried to
         // closeClean in handleAssignment. We should throw if we detect this to force the TaskManager to closeDirty

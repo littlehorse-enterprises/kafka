@@ -279,6 +279,9 @@ public class ProcessorStateManager implements StateManager {
     void registerStateStores(final List<StateStore> allStores, final InternalProcessorContext<?, ?> processorContext) {
         processorContext.uninitialize();
         for (final StateStore store : allStores) {
+            if (!store.isOpen() && store.persistent()) {
+                throw new IllegalStateException("State store " + store.name() + " is not open, this should not happen");
+            }
             if (stores.containsKey(store.name())) {
                 if (!stateUpdaterEnabled) {
                     maybeRegisterStoreWithChangelogReader(store.name());
@@ -288,7 +291,6 @@ public class ProcessorStateManager implements StateManager {
                     store.preInit(processorContext);
                     startupStores.put(store.name(), store);
                 } else {
-                    store.preInit(processorContext);
                     store.init(processorContext, store);
                     startupStores.remove(store.name());
                 }

@@ -158,6 +158,7 @@ public abstract class AbstractDualSchemaRocksDBSegmentedBytesStoreTest {
             new MockRecordCollector(),
             new ThreadCache(new LogContext("testCache "), 0, new MockStreamsMetrics(new Metrics()))
         );
+        bytesStore.preInit(context);
         bytesStore.init(context, bytesStore);
     }
 
@@ -1213,7 +1214,7 @@ public abstract class AbstractDualSchemaRocksDBSegmentedBytesStoreTest {
         assertTrue(new File(parent, firstSegmentName).renameTo(oldStyleName));
 
         bytesStore = getBytesStore();
-
+        bytesStore.preInit(context);
         bytesStore.init(context, bytesStore);
         final List<KeyValue<Windowed<String>, Long>> results = toListAndCloseIterator(bytesStore.fetch(Bytes.wrap(key.getBytes()), 0L, 60_000L));
         assertThat(
@@ -1245,7 +1246,7 @@ public abstract class AbstractDualSchemaRocksDBSegmentedBytesStoreTest {
         assertTrue(new File(parent, firstSegmentName).renameTo(oldStyleName));
 
         bytesStore = getBytesStore();
-
+        bytesStore.preInit(context);
         bytesStore.init(context, bytesStore);
         final List<KeyValue<Windowed<String>, Long>> results = toListAndCloseIterator(bytesStore.fetch(Bytes.wrap(key.getBytes()), 0L, 60_000L));
         assertThat(
@@ -1357,6 +1358,7 @@ public abstract class AbstractDualSchemaRocksDBSegmentedBytesStoreTest {
                 Time.SYSTEM
         );
         bytesStore = getBytesStore();
+        bytesStore.preInit(context);
         bytesStore.init(context, bytesStore);
         // 0 segments initially.
         assertEquals(0, bytesStore.getSegments().size());
@@ -1393,6 +1395,7 @@ public abstract class AbstractDualSchemaRocksDBSegmentedBytesStoreTest {
                 Time.SYSTEM
         );
         bytesStore = getBytesStore();
+        bytesStore.preInit(context);
         bytesStore.init(context, bytesStore);
         // 0 segments initially.
         assertEquals(0, bytesStore.getSegments().size());
@@ -1432,6 +1435,7 @@ public abstract class AbstractDualSchemaRocksDBSegmentedBytesStoreTest {
                 Time.SYSTEM
         );
         bytesStore = getBytesStore();
+        bytesStore.preInit(context);
         bytesStore.init(context, bytesStore);
         // 0 segments initially.
         assertEquals(0, bytesStore.getSegments().size());
@@ -1473,6 +1477,7 @@ public abstract class AbstractDualSchemaRocksDBSegmentedBytesStoreTest {
                 Time.SYSTEM
         );
         bytesStore = getBytesStore();
+        bytesStore.preInit(context);
         bytesStore.init(context, bytesStore);
         bytesStore.restoreAllInternal(getChangelogRecordsWithoutHeaders());
         assertThat(bytesStore.getPosition(), is(Position.emptyPosition()));
@@ -1590,6 +1595,7 @@ public abstract class AbstractDualSchemaRocksDBSegmentedBytesStoreTest {
         );
         final Time time = Time.SYSTEM;
         context.setSystemTimeMs(time.milliseconds());
+        bytesStore.preInit(context);
         bytesStore.init(context, bytesStore);
 
         // write a record to advance stream time, with a high enough timestamp

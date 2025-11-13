@@ -247,6 +247,7 @@ public class StateDirectory implements AutoCloseable {
                             stateUpdaterEnabled
                     );
                     final StartupContext initContext = new StartupContext(id, config, stateManager);
+                    subTopology.openStores(initContext);
                     // TODO: we need to pass a proper logPrefix
                     StateManagerUtil.registerStateStores(log, "", subTopology, stateManager, this, initContext);
                     for (final StateStore stateStore : subTopology.stateStores()) {

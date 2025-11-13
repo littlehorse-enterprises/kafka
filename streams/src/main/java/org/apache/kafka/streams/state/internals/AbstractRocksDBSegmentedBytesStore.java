@@ -289,6 +289,18 @@ public class AbstractRocksDBSegmentedBytesStore<S extends Segment> implements Se
     }
 
     @Override
+    public void preInit(final StateStoreContext stateStoreContext) {
+        segments.openExisting(stateStoreContext, observedStreamTime);
+        position = segments.getPosition();
+        open = true;
+
+        consistencyEnabled = StreamsConfig.InternalConfig.getBoolean(
+                stateStoreContext.appConfigs(),
+                IQ_CONSISTENCY_OFFSET_VECTOR_ENABLED,
+                false);
+    }
+
+    @Override
     public void init(final StateStoreContext stateStoreContext, final StateStore root) {
         this.internalProcessorContext = asInternalProcessorContext(stateStoreContext);
 
@@ -302,9 +314,6 @@ public class AbstractRocksDBSegmentedBytesStore<S extends Segment> implements Se
                 metrics
         );
 
-        segments.openExisting(internalProcessorContext, observedStreamTime);
-        position = segments.getPosition();
-
         // register and possibly restore the state from the logs
         stateStoreContext.register(
             root,
@@ -312,12 +321,7 @@ public class AbstractRocksDBSegmentedBytesStore<S extends Segment> implements Se
             () -> { }
         );
 
-        open = true;
 
-        consistencyEnabled = StreamsConfig.InternalConfig.getBoolean(
-                stateStoreContext.appConfigs(),
-                IQ_CONSISTENCY_OFFSET_VECTOR_ENABLED,
-                false);
     }
 
     @Override

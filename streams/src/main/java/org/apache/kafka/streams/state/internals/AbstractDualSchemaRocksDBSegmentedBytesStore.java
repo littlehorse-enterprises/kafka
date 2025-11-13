@@ -238,6 +238,18 @@ public abstract class AbstractDualSchemaRocksDBSegmentedBytesStore<S extends Seg
     }
 
     @Override
+    public void preInit(final StateStoreContext stateStoreContext) {
+        segments.openExisting(stateStoreContext, observedStreamTime);
+        this.position = segments.getPosition();
+        open = true;
+        consistencyEnabled = StreamsConfig.InternalConfig.getBoolean(
+                stateStoreContext.appConfigs(),
+                IQ_CONSISTENCY_OFFSET_VECTOR_ENABLED,
+                false
+        );
+    }
+
+    @Override
     public void init(final StateStoreContext stateStoreContext, final StateStore root) {
         this.internalProcessorContext = asInternalProcessorContext(stateStoreContext);
 
@@ -251,9 +263,6 @@ public abstract class AbstractDualSchemaRocksDBSegmentedBytesStore<S extends Seg
             metrics
         );
 
-        segments.openExisting(internalProcessorContext, observedStreamTime);
-        this.position = segments.getPosition();
-
         // register and possibly restore the state from the logs
         stateStoreContext.register(
             root,
@@ -261,13 +270,6 @@ public abstract class AbstractDualSchemaRocksDBSegmentedBytesStore<S extends Seg
             () -> { }
         );
 
-        open = true;
-
-        consistencyEnabled = StreamsConfig.InternalConfig.getBoolean(
-            stateStoreContext.appConfigs(),
-            IQ_CONSISTENCY_OFFSET_VECTOR_ENABLED,
-            false
-        );
     }
 
     @Override

@@ -94,26 +94,30 @@ public class InMemorySessionStore implements SessionStore<Bytes, byte[]> {
     }
 
     @Override
-    public void init(final StateStoreContext stateStoreContext,
-                     final StateStore root) {
-        this.stateStoreContext = stateStoreContext;
+    public void preInit(final StateStoreContext stateStoreContext) {
         final String threadId = Thread.currentThread().getName();
         final String taskName = stateStoreContext.taskId().toString();
-
+        this.stateStoreContext = stateStoreContext;
         // The provided context is not required to implement InternalProcessorContext,
         // If it doesn't, we can't record this metric.
         if (stateStoreContext instanceof InternalProcessorContext) {
             this.context = (InternalProcessorContext<?, ?>) stateStoreContext;
             final StreamsMetricsImpl metrics = this.context.metrics();
             expiredRecordSensor = TaskMetrics.droppedRecordsSensor(
-                threadId,
-                taskName,
-                metrics
+                    threadId,
+                    taskName,
+                    metrics
             );
         } else {
             this.context = null;
             expiredRecordSensor = null;
         }
+        open = true;
+    }
+
+    @Override
+    public void init(final StateStoreContext stateStoreContext,
+                     final StateStore root) {
 
         if (root != null) {
             final boolean consistencyEnabled = StreamsConfig.InternalConfig.getBoolean(
@@ -137,7 +141,6 @@ public class InMemorySessionStore implements SessionStore<Bytes, byte[]> {
                 }
             );
         }
-        open = true;
     }
 
     @Override

@@ -167,6 +167,8 @@ class ActiveTaskCreator {
                 cache
             );
 
+            topology.openStores(context);
+
             createdTasks.add(
                 createActiveTask(
                     taskId,

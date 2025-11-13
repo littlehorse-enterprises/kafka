@@ -349,6 +349,19 @@ public class RocksDBVersionedStore implements VersionedKeyValueStore<Bytes, byte
         return position;
     }
 
+
+    @Override
+    public void preInit(final StateStoreContext stateStoreContext) {
+        segmentStores.openExisting(stateStoreContext, observedStreamTime);
+        position = segmentStores.getPosition();
+        open = true;
+        consistencyEnabled = StreamsConfig.InternalConfig.getBoolean(
+                stateStoreContext.appConfigs(),
+                IQ_CONSISTENCY_OFFSET_VECTOR_ENABLED,
+                false
+        );
+    }
+
     @Override
     public void init(final StateStoreContext stateStoreContext, final StateStore root) {
         this.internalProcessorContext = ProcessorContextUtils.asInternalProcessorContext(stateStoreContext);
@@ -365,22 +378,11 @@ public class RocksDBVersionedStore implements VersionedKeyValueStore<Bytes, byte
 
         metricsRecorder.init(ProcessorContextUtils.metricsImpl(stateStoreContext), stateStoreContext.taskId());
 
-        segmentStores.openExisting(internalProcessorContext, observedStreamTime);
-        position = segmentStores.getPosition();
-
         // register and possibly restore the state from the logs
         stateStoreContext.register(
                 root,
                 (RecordBatchingStateRestoreCallback) RocksDBVersionedStore.this::restoreBatch,
                 () -> { }
-        );
-
-        open = true;
-
-        consistencyEnabled = StreamsConfig.InternalConfig.getBoolean(
-                stateStoreContext.appConfigs(),
-                IQ_CONSISTENCY_OFFSET_VECTOR_ENABLED,
-                false
         );
     }
 

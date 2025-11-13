@@ -162,6 +162,7 @@ public class KStreamSessionWindowAggregateProcessorTest {
             sessionStore.close();
         }
         sessionStore = storeBuilder.build();
+        sessionStore.preInit(mockContext);
         sessionStore.init(mockContext, sessionStore);
     }
 

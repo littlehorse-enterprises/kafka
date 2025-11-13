@@ -72,6 +72,7 @@ public class RocksDBTimeOrderedKeyValueBufferTest {
 
         buffer = new RocksDBTimeOrderedKeyValueBuffer<>(store, serde, serde, grace, "testing", false);
         buffer.setSerdesIfNull(serdeGetter);
+        buffer.preInit(context);
         buffer.init(context, store);
     }
 
