@@ -259,8 +259,6 @@ public class ProcessorTopology {
 
     public void openStores(final InternalProcessorContext<?, ?> context) {
         for (final StateStore stateStore : stateStores) {
-            final boolean open = stateStore.isOpen();
-            log.info("" + open);
             stateStore.preInit(context);
         }
     }

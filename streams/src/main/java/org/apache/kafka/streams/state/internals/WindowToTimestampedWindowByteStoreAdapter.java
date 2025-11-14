@@ -16,6 +16,7 @@
  */
 package org.apache.kafka.streams.state.internals;
 
+import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.utils.Bytes;
 import org.apache.kafka.streams.kstream.Windowed;
 import org.apache.kafka.streams.processor.StateStore;
@@ -30,6 +31,7 @@ import org.apache.kafka.streams.state.WindowStore;
 import org.apache.kafka.streams.state.WindowStoreIterator;
 
 import java.time.Instant;
+import java.util.Map;
 
 import static org.apache.kafka.streams.state.TimestampedBytesStore.convertToTimestampedFormat;
 import static org.apache.kafka.streams.state.internals.ValueAndTimestampDeserializer.rawValue;
@@ -163,6 +165,16 @@ class WindowToTimestampedWindowByteStoreAdapter implements WindowStore<Bytes, by
     @Override
     public void init(final StateStoreContext stateStoreContext, final StateStore root) {
         store.init(stateStoreContext, root);
+    }
+
+    @Override
+    public void commit(final Map<TopicPartition, Long> changelogOffsets) {
+        store.commit(changelogOffsets);
+    }
+
+    @Override
+    public Long committedOffset(final TopicPartition tp) {
+        return store.committedOffset(tp);
     }
 
     @Override

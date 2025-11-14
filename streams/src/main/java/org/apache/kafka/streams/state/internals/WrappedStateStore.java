@@ -71,6 +71,12 @@ public abstract class WrappedStateStore<S extends StateStore, K, V> implements S
         wrapped.init(stateStoreContext, root);
     }
 
+
+    @Override
+    public Long committedOffset(final TopicPartition partition) {
+        return wrapped.committedOffset(partition);
+    }
+
     @SuppressWarnings("unchecked")
     @Override
     public boolean setFlushListener(final CacheFlushListener<K, V> listener,

@@ -144,10 +144,10 @@ public interface StateStore {
     }
 
     default Long committedOffset(final TopicPartition partition) {
-        return null;
+        throw new UnsupportedOperationException();
     }
 
     default void commit(final Map<TopicPartition, Long> changelogOffsets) {
-        flush();
+        throw new UnsupportedOperationException();
     }
 }

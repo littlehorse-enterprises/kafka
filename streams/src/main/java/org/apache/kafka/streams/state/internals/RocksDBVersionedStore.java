@@ -391,6 +391,11 @@ public class RocksDBVersionedStore implements VersionedKeyValueStore<Bytes, byte
         segmentStores.commit(changelogOffsets);
     }
 
+    @Override
+    public Long committedOffset(final TopicPartition tp) {
+        return segmentStores.commitedOffset(tp);
+    }
+
     // VisibleForTesting
     void restoreBatch(final Collection<ConsumerRecord<byte[], byte[]>> records) {
 

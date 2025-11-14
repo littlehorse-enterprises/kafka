@@ -675,17 +675,23 @@ public class RocksDBStore implements KeyValueStore<Bytes, byte[]>, BatchWritingS
             final byte[] key = STRING_SERDE.serializer().serialize(null, keyStr);
             final byte[] value = LONG_SERDE.serializer().serialize(null, entry.getValue());
             checkpointCfAccessor.put(dbAccessor, key, value);
-            log.info("Commiting transaction for store {} with changelog offsets {}", name, entry);
+            log.warn("Commiting transaction for store {} with changelog offsets {}", name, entry);
         }
     }
 
     @Override
-    public Long committedOffset(final TopicPartition partition) {
-        return KeyValueStore.super.committedOffset(partition);
-    }
-
-    private void loadPosition() {
-
+    public Long committedOffset(final TopicPartition tp) {
+        final String keyStr = String.format("%s/%d", tp.topic(), tp.partition());
+        final byte[] key = STRING_SERDE.serializer().serialize(null, keyStr);
+        try {
+            final byte[] resultBytes = checkpointCfAccessor.get(dbAccessor, key);
+            if (resultBytes == null) {
+                return null;
+            }
+            return LONG_SERDE.deserializer().deserialize(null, resultBytes);
+        } catch (final RocksDBException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Override

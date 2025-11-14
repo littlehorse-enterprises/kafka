@@ -190,6 +190,14 @@ abstract class AbstractSegments<S extends Segment> implements Segments<S> {
         segments.clear();
     }
 
+    @Override
+    public Long commitedOffset(final TopicPartition tp) {
+        return segments.values().stream().findFirst().stream()
+                .findFirst()
+                .map(s -> s.committedOffset(tp))
+                .orElse(null);
+    }
+
     protected void cleanupExpiredSegments(final long streamTime) {
         final long minLiveSegment = segmentId(streamTime - retentionPeriod);
         final Iterator<Map.Entry<Long, S>> toRemove =

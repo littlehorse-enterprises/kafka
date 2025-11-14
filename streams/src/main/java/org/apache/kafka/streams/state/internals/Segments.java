@@ -47,4 +47,6 @@ interface Segments<S extends Segment> {
     }
 
     void close();
+
+    Long commitedOffset(final TopicPartition tp);
 }
