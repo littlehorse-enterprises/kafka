@@ -675,7 +675,7 @@ public class RocksDBStore implements KeyValueStore<Bytes, byte[]>, BatchWritingS
             final byte[] key = STRING_SERDE.serializer().serialize(null, keyStr);
             final byte[] value = LONG_SERDE.serializer().serialize(null, entry.getValue());
             checkpointCfAccessor.put(dbAccessor, key, value);
-            log.warn("Commiting transaction for store {} with changelog offsets {}", name, entry);
+            log.info("Commiting transaction for store {} with changelog offsets {}", name, entry);
         }
     }
 

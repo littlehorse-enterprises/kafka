@@ -328,10 +328,17 @@ public class ProcessorStateManager implements StateManager {
                              store.changelogPartition, store.stateStore.name());
                 } else if (store.offset() == null) {
                     final Long offset = store.stateStore.committedOffset(store.changelogPartition);
-                    store.setOffset(offset);
-
-                    log.info("State store {} initialized from checkpoint with offset {} at changelog {}",
-                            store.stateStore.name(), store.offset, store.changelogPartition);
+                    if (offset != null) {
+                        final Long checkpointedOffset = changelogOffsetFromCheckpointedOffset(offset);
+                        if (checkpointedOffset != null && checkpointedOffset > 0) {
+                            store.setOffset(changelogOffsetFromCheckpointedOffset(offset));
+                            log.info("State store {} initialized from checkpoint with offset {} at changelog {}",
+                                    store.stateStore.name(), store.offset, store.changelogPartition);
+                        }
+                    } else {
+                        log.warn("No offset found for changelog {} of state store {}. Initializing to the starting offset.",
+                                store.changelogPartition, store.stateStore.name());
+                    }
                 }
             }
         } catch (final TaskCorruptedException e) {
