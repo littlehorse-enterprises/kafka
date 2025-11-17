@@ -1844,7 +1844,7 @@ public class StreamTaskTest {
 
         assertThat("Map was empty", task.highWaterMark().size() == 2);
 
-        verify(stateManager, times(3)).checkpoint();
+        verify(stateManager, times(2)).checkpoint();
     }
 
     @Test
@@ -2087,8 +2087,7 @@ public class StreamTaskTest {
         task.suspend();
         task.postCommit(true);
 
-        verify(stateManager, never()).flush();
-        verify(stateManager).checkpoint();
+        verify(stateManager, never()).checkpoint();
     }
 
     @Test
@@ -2124,7 +2123,7 @@ public class StreamTaskTest {
         task.suspend();
         task.postCommit(false);
 
-        verify(stateManager, times(3)).checkpoint();
+        verify(stateManager).checkpoint();
     }
 
     @Test
@@ -2230,7 +2229,6 @@ public class StreamTaskTest {
 
         assertEquals(Task.State.CLOSED, task.state());
 
-        verify(stateManager, times(2)).flush();
         verify(stateManager, times(2)).checkpoint();
     }
 
@@ -2243,7 +2241,6 @@ public class StreamTaskTest {
         task.initializeIfNeeded();
         task.maybeCheckpoint(true);
 
-        verify(stateManager).flush();
         verify(stateManager).checkpoint();
     }
 
@@ -2266,8 +2263,7 @@ public class StreamTaskTest {
         task.maybeCheckpoint(false);  // this should not checkpoint
         assertEquals(Collections.singletonMap(partition1, 11000L), task.offsetSnapshotSinceLastFlush);
 
-        verify(stateManager).flush();
-        verify(stateManager, times(3)).checkpoint();
+        verify(stateManager).checkpoint();
     }
 
     @Test
@@ -2299,7 +2295,7 @@ public class StreamTaskTest {
 
         assertEquals(SUSPENDED, task.state());
 
-        verify(stateManager, times(2)).checkpoint();
+        verify(stateManager).checkpoint();
     }
 
     @Test
@@ -2360,7 +2356,6 @@ public class StreamTaskTest {
         final double expectedCloseTaskMetric = 0.0;
         verifyCloseTaskMetric(expectedCloseTaskMetric, streamsMetrics, metricName);
 
-        verify(stateManager).flush();
         verify(stateManager).checkpoint();
         verify(stateManager, never()).close();
     }

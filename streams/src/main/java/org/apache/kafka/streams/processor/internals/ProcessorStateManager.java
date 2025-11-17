@@ -312,7 +312,7 @@ public class ProcessorStateManager implements StateManager {
     }
 
     // package-private for test only
-    void initializeStoreOffsetsFromCheckpoint() {
+    void initializeStoreOffsetsFromCheckpoint(final boolean storeDirIsEmpty) {
         try {
 
             for (final StateStoreMetadata store : stores.values()) {
@@ -328,16 +328,21 @@ public class ProcessorStateManager implements StateManager {
                              store.changelogPartition, store.stateStore.name());
                 } else if (store.offset() == null) {
                     final Long offset = store.stateStore.committedOffset(store.changelogPartition);
-                    if (offset != null) {
-                        final Long checkpointedOffset = changelogOffsetFromCheckpointedOffset(offset);
-                        if (checkpointedOffset != null && checkpointedOffset > 0) {
-                            store.setOffset(changelogOffsetFromCheckpointedOffset(offset));
-                            log.info("State store {} initialized from checkpoint with offset {} at changelog {}",
-                                    store.stateStore.name(), store.offset, store.changelogPartition);
+                    if (offset == null) {
+                        if (eosEnabled && !storeDirIsEmpty) {
+                            log.warn("State store {} did not find checkpoint offsets while stores are not empty, " +
+                                    "since under EOS it has the risk of getting uncommitted data in stores we have to " +
+                                    "treat it as a task corruption error and wipe out the local state of task {} " +
+                                    "before re-bootstrapping", store.stateStore.name(), taskId);
+
+                            throw new TaskCorruptedException(Collections.singleton(taskId));
+                        } else {
+                            log.info("State store {} did not find checkpoint offset, hence would " +
+                                            "default to the starting offset at changelog {}",
+                                    store.stateStore.name(), store.changelogPartition);
                         }
                     } else {
-                        log.warn("No offset found for changelog {} of state store {}. Initializing to the starting offset.",
-                                store.changelogPartition, store.stateStore.name());
+                        store.setOffset(changelogOffsetFromCheckpointedOffset(offset));
                     }
                 }
             }
