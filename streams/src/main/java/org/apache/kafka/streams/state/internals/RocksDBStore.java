@@ -107,7 +107,9 @@ public class RocksDBStore implements KeyValueStore<Bytes, byte[]>, BatchWritingS
     private static final Serde<Long> LONG_SERDE = Serdes.Long();
     private static final Serde<String> STRING_SERDE = Serdes.String();
     private static final byte[] CHECKPOINT_STATE_KEY = STRING_SERDE.serializer().serialize(null, "state");
-    private static final byte[] CHECKPOINT_KEY = STRING_SERDE.serializer().serialize(null, "state");
+    private static final byte[] CHECKPOINT_CLOSED_STATE = STRING_SERDE.serializer().serialize(null, "closed");
+    private static final byte[] CHECKPOINT_OPEN_STATE = STRING_SERDE.serializer().serialize(null, "open");
+    private static final byte[] CHECKPOINT_KEY = STRING_SERDE.serializer().serialize(null, "checkpoint");
 
     static final String DB_FILE_DIR = "rocksdb";
 
@@ -263,8 +265,13 @@ public class RocksDBStore implements KeyValueStore<Bytes, byte[]>, BatchWritingS
         openRocksDB(dbOptions, columnFamilyOptions);
         dbAccessor = new DirectDBAccessor(db, fOptions, wOptions);
         open = true;
-        readOffsetFromDb();
+        if (!checkpointIsOpen()) {
+            readOffsetFromDb();
+        } else {
+            this.managedOffsets = new RocksDBManagedOffsets();
+        }
         this.position = managedOffsets.toPosition();
+        openCheckpointCF();
 
     }
 
@@ -680,17 +687,7 @@ public class RocksDBStore implements KeyValueStore<Bytes, byte[]>, BatchWritingS
 
     @Override
     public Long committedOffset(final TopicPartition tp) {
-        final String keyStr = String.format("%s/%d", tp.topic(), tp.partition());
-        final byte[] key = STRING_SERDE.serializer().serialize(null, keyStr);
-        try {
-            final byte[] resultBytes = checkpointCfAccessor.get(dbAccessor, key);
-            if (resultBytes == null) {
-                return null;
-            }
-            return LONG_SERDE.deserializer().deserialize(null, resultBytes);
-        } catch (final RocksDBException e) {
-            throw new RuntimeException(e);
-        }
+        return managedOffsets.get(tp);
     }
 
     @Override
@@ -713,11 +710,24 @@ public class RocksDBStore implements KeyValueStore<Bytes, byte[]>, BatchWritingS
         }
     }
 
+    private boolean checkpointIsOpen() {
+        try {
+            return Arrays.equals(checkpointCfAccessor.get(dbAccessor, CHECKPOINT_STATE_KEY), CHECKPOINT_OPEN_STATE);
+        } catch (final RocksDBException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private void openCheckpointCF() {
+        checkpointCfAccessor.put(dbAccessor, CHECKPOINT_STATE_KEY, CHECKPOINT_OPEN_STATE);
+    }
+
     private void closeCheckpointCF() {
         final OffsetCheckpointBuffer buffer = new OffsetCheckpointBuffer();
         try {
             buffer.write(managedOffsets.getOffsets());
             checkpointCfAccessor.put(dbAccessor, CHECKPOINT_KEY, buffer.get().get());
+            checkpointCfAccessor.put(dbAccessor, CHECKPOINT_STATE_KEY, CHECKPOINT_CLOSED_STATE);
         } catch (final IOException e) {
             throw new RuntimeException(e);
         }
