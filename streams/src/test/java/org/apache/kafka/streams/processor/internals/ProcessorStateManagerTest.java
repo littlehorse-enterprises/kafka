@@ -37,6 +37,7 @@ import org.apache.kafka.streams.query.Position;
 import org.apache.kafka.streams.state.TimestampedBytesStore;
 import org.apache.kafka.streams.state.internals.CachedStateStore;
 import org.apache.kafka.streams.state.internals.OffsetCheckpoint;
+import org.apache.kafka.streams.state.internals.OffsetCheckpointFile;
 import org.apache.kafka.streams.state.internals.StoreQueryUtils;
 import org.apache.kafka.test.MockCachedKeyValueStore;
 import org.apache.kafka.test.MockKeyValueStore;
@@ -146,7 +147,7 @@ public class ProcessorStateManagerTest {
             }
         }), new MockTime(), true, true);
         checkpointFile = new File(stateDirectory.getOrCreateDirectoryForTask(taskId), CHECKPOINT_FILE_NAME);
-        checkpoint = new OffsetCheckpoint(checkpointFile);
+        checkpoint = new OffsetCheckpointFile(checkpointFile);
     }
 
     @AfterEach
@@ -1129,7 +1130,7 @@ public class ProcessorStateManagerTest {
 
         public StateStorePositionCommit(final File file, final Position position) {
             this.file = file;
-            this.checkpointFile = new OffsetCheckpoint(file);
+            this.checkpointFile = new OffsetCheckpointFile(file);
             this.position = position;
         }
 

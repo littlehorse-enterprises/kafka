@@ -38,6 +38,7 @@ import org.apache.kafka.streams.processor.api.Processor;
 import org.apache.kafka.streams.processor.api.ProcessorSupplier;
 import org.apache.kafka.streams.state.TimestampedBytesStore;
 import org.apache.kafka.streams.state.internals.OffsetCheckpoint;
+import org.apache.kafka.streams.state.internals.OffsetCheckpointFile;
 import org.apache.kafka.streams.state.internals.WrappedStateStore;
 import org.apache.kafka.test.InternalMockProcessorContext;
 import org.apache.kafka.test.MockStateRestoreListener;
@@ -217,7 +218,7 @@ public class GlobalStateManagerImplTest {
 
         // start with a checkpoint file will all topic-partitions: expected and old (not
         // associated with any global state store).
-        final OffsetCheckpoint checkpoint = new OffsetCheckpoint(checkpointFile);
+        final OffsetCheckpoint checkpoint = new OffsetCheckpointFile(checkpointFile);
         checkpoint.write(startOffsets);
 
         // initialize will throw exception
@@ -393,7 +394,7 @@ public class GlobalStateManagerImplTest {
     public void shouldRestoreRecordsFromCheckpointToHighWatermark() throws IOException {
         initializeConsumer(5, 5, t1);
 
-        final OffsetCheckpoint offsetCheckpoint = new OffsetCheckpoint(new File(stateManager.baseDir(),
+        final OffsetCheckpoint offsetCheckpoint = new OffsetCheckpointFile(new File(stateManager.baseDir(),
                                                                                 StateManagerUtil.CHECKPOINT_FILE_NAME));
         offsetCheckpoint.write(Collections.singletonMap(t1, 5L));
 
@@ -588,7 +589,7 @@ public class GlobalStateManagerImplTest {
     }
 
     private Map<TopicPartition, Long> readOffsetsCheckpoint() throws IOException {
-        final OffsetCheckpoint offsetCheckpoint = new OffsetCheckpoint(new File(stateManager.baseDir(),
+        final OffsetCheckpoint offsetCheckpoint = new OffsetCheckpointFile(new File(stateManager.baseDir(),
                                                                                 StateManagerUtil.CHECKPOINT_FILE_NAME));
         return offsetCheckpoint.read();
     }
@@ -1199,7 +1200,7 @@ public class GlobalStateManagerImplTest {
     }
 
     private Map<TopicPartition, Long> writeCheckpoint() throws IOException {
-        final OffsetCheckpoint checkpoint = new OffsetCheckpoint(checkpointFile);
+        final OffsetCheckpoint checkpoint = new OffsetCheckpointFile(checkpointFile);
         final Map<TopicPartition, Long> expected = Collections.singletonMap(t1, 1L);
         checkpoint.write(expected);
         return expected;

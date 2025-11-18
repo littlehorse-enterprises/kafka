@@ -54,6 +54,7 @@ import org.apache.kafka.streams.processor.internals.Task.State;
 import org.apache.kafka.streams.processor.internals.tasks.DefaultTaskManager;
 import org.apache.kafka.streams.processor.internals.testutil.DummyStreamsConfig;
 import org.apache.kafka.streams.state.internals.OffsetCheckpoint;
+import org.apache.kafka.streams.state.internals.OffsetCheckpointFile;
 
 import org.apache.logging.log4j.Level;
 import org.hamcrest.Matchers;
@@ -4770,7 +4771,7 @@ public class TaskManagerTest {
         final File checkpointFile = getCheckpointFile(task);
         final Path checkpointFilePath = checkpointFile.toPath();
         Files.createFile(checkpointFilePath);
-        new OffsetCheckpoint(checkpointFile).write(offsets);
+        new OffsetCheckpointFile(checkpointFile).write(offsets);
         lenient().when(stateDirectory.checkpointFileFor(task)).thenReturn(checkpointFile);
         expectDirectoryNotEmpty(task);
     }

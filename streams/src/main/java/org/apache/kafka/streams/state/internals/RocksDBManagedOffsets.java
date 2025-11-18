@@ -19,13 +19,30 @@ package org.apache.kafka.streams.state.internals;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.streams.query.Position;
 
+import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class RocksDBManagedOffsets {
 
-    private final ConcurrentHashMap<TopicPartition, Long> offsets = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<TopicPartition, Long> offsets;
+
+    public RocksDBManagedOffsets() {
+        this.offsets = new ConcurrentHashMap<>();
+    }
+
+    public RocksDBManagedOffsets(final Map<TopicPartition, Long> offsets) {
+        this.offsets = new ConcurrentHashMap<>(offsets);
+    }
+
+    public Long get(final TopicPartition tp) {
+        return offsets.get(tp);
+    }
+
+    public Long remove(final TopicPartition tp) {
+        return offsets.remove(tp);
+    }
 
     public void put(final TopicPartition tp, final long offset) {
         offsets.put(tp, offset);
@@ -44,4 +61,7 @@ public class RocksDBManagedOffsets {
         return Position.fromMap(all);
     }
 
+    public Map<TopicPartition, Long> getOffsets() {
+        return Collections.unmodifiableMap(offsets);
+    }
 }
