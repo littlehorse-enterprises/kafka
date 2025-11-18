@@ -23,6 +23,7 @@ import org.slf4j.Logger;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.EOFException;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
@@ -91,6 +92,9 @@ public abstract class OffsetCheckpoint {
             }
 
             writer.flush();
+            if (outputStream instanceof FileOutputStream) {
+                ((FileOutputStream) outputStream).getFD().sync();
+            }
         }
     }
 

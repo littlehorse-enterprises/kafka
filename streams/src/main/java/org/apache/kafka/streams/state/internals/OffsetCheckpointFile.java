@@ -59,7 +59,6 @@ public class OffsetCheckpointFile extends OffsetCheckpoint {
             try (final FileOutputStream fileOutputStream = new FileOutputStream(temp)) {
                 writeBuffer(offsets, fileOutputStream);
                 fileOutputStream.flush();
-                fileOutputStream.getFD().sync();
             }
 
             LOG.trace("Swapping tmp checkpoint file {} {}", temp.toPath(), file.toPath());
