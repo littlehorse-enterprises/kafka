@@ -687,6 +687,9 @@ public class RocksDBStore implements KeyValueStore<Bytes, byte[]>, BatchWritingS
 
     @Override
     public Long committedOffset(final TopicPartition tp) {
+        if (managedOffsets.listAll().isEmpty()) {
+            return OffsetCheckpoint.OFFSET_UNKNOWN;
+        }
         return managedOffsets.get(tp);
     }
 
