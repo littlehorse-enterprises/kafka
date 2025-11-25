@@ -104,6 +104,10 @@ public class ProcessorStateManager implements StateManager {
         // corrupted state store should not be included in checkpointing
         private boolean corrupted;
 
+        private StateStoreMetadata(final StateStore stateStore) {
+            this(stateStore, null);
+        }
+
 
         private StateStoreMetadata(final StateStore stateStore,
                                    final CommitCallback commitCallback) {
@@ -176,7 +180,7 @@ public class ProcessorStateManager implements StateManager {
 
     // must be maintained in topological order
     private final FixedOrderMap<String, StateStoreMetadata> stores = new FixedOrderMap<>();
-    private final Map<String, StateStore> startupStores = new HashMap<>();
+    private final Map<String, StateStoreMetadata> startupStores = new HashMap<>();
     private final FixedOrderMap<String, StateStore> globalStores = new FixedOrderMap<>();
 
     private final File baseDir;
@@ -286,7 +290,7 @@ public class ProcessorStateManager implements StateManager {
             } else {
                 if (startupState.get()) {
                     store.preInit(processorContext);
-                    startupStores.put(store.name(), store);
+                    startupStores.put(store.name(), new StateStoreMetadata(store));
                 } else {
                     if (!store.isOpen() && store.persistent()) {
                         throw new IllegalStateException("State store " + store.name() + " is not open, this should not happen");
@@ -314,6 +318,19 @@ public class ProcessorStateManager implements StateManager {
     // package-private for test only
     void initializeStoreOffsetsFromCheckpoint(final boolean storeDirIsEmpty) {
         try {
+
+            // initialize
+            for (final StateStoreMetadata startupStore : startupStores.values()) {
+                final StateStore store = startupStore.stateStore;
+                if (store.persistent()) {
+                    final Long committedOffset = store.committedOffset(getStorePartition(store.name()));
+                    if (committedOffset != null && committedOffset > 0L) {
+                        startupStore.setOffset(committedOffset);
+                    } else {
+                        startupStore.corrupted = true;
+                    }
+                }
+            }
 
             for (final StateStoreMetadata store : stores.values()) {
                 if (store.corrupted) {
@@ -404,6 +421,11 @@ public class ProcessorStateManager implements StateManager {
                 commitCallback,
                 converterForStore(store)) :
             new StateStoreMetadata(store, commitCallback);
+
+        if (startupStores.containsKey(storeName)) {
+            final StateStoreMetadata removed = startupStores.remove(storeName);
+            storeMetadata.setOffset(removed.offset());
+        }
 
         // register the store first, so that if later an exception is thrown then eventually while we call `close`
         // on the state manager this state store would be closed as well
@@ -659,8 +681,8 @@ public class ProcessorStateManager implements StateManager {
         }
 
         if (!startupStores.isEmpty()) {
-            for (final Map.Entry<String, StateStore> entry : startupStores.entrySet()) {
-                final StateStore store = entry.getValue();
+            for (final Map.Entry<String, StateStoreMetadata> entry : startupStores.entrySet()) {
+                final StateStore store = entry.getValue().stateStore;
                 store.close();
             }
             startupStores.clear();
