@@ -155,6 +155,14 @@ public class MeteredVersionedKeyValueStoreTest {
         doShouldPassChangelogTopicNameToStateStoreSerde(defaultChangelogTopicName);
     }
 
+    @Test
+    public void shouldCloseOnPreInitPhase() {
+        store = newMeteredStore(inner);
+        store.preInit(context);
+        store.close();
+        verify(inner).close();
+    }
+
     @SuppressWarnings("unchecked")
     private void doShouldPassChangelogTopicNameToStateStoreSerde(final String changelogTopicName) {
         // recreate store with mock serdes

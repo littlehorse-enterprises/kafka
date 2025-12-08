@@ -654,6 +654,17 @@ public class MeteredSessionStoreTest {
         assertThat(storeMetrics(), empty());
     }
 
+    @Test
+    public void shouldCloseOnPreInitPhase() {
+        setUpWithoutContext();
+        metrics.config().recordLevel(Sensor.RecordingLevel.DEBUG);
+        doNothing().when(innerStore).close();
+        store.preInit(context);
+
+        assertThat(storeMetrics(), empty());
+        store.close();
+    }
+
     @SuppressWarnings("unused")
     @Test
     public void shouldTrackOpenIteratorsMetric() {
