@@ -41,6 +41,11 @@ public class ChangeLoggingSessionBytesStore
     }
 
     @Override
+    public void preInit(final StateStoreContext stateStoreContext) {
+        super.preInit(stateStoreContext);
+    }
+
+    @Override
     public void init(final StateStoreContext stateStoreContext, final StateStore root) {
         internalContext = asInternalProcessorContext(stateStoreContext);
         super.init(stateStoreContext, root);

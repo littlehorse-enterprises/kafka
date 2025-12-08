@@ -101,6 +101,11 @@ public class MeteredSessionStore<K, V>
     }
 
     @Override
+    public void preInit(final StateStoreContext stateStoreContext) {
+        super.preInit(stateStoreContext);
+    }
+
+    @Override
     public void init(final StateStoreContext stateStoreContext,
                      final StateStore root) {
         internalContext = stateStoreContext instanceof InternalProcessorContext ? (InternalProcessorContext<?, ?>) stateStoreContext : null;
@@ -407,7 +412,9 @@ public class MeteredSessionStore<K, V>
         try {
             wrapped().close();
         } finally {
-            streamsMetrics.removeAllStoreLevelSensorsAndMetrics(taskId.toString(), name());
+            if (streamsMetrics != null) {
+                streamsMetrics.removeAllStoreLevelSensorsAndMetrics(taskId.toString(), name());
+            }
         }
     }
 

@@ -17,6 +17,7 @@
 package org.apache.kafka.streams.state.internals;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.metrics.Sensor;
 import org.apache.kafka.common.utils.Bytes;
 import org.apache.kafka.streams.KeyValue;
@@ -49,12 +50,12 @@ import org.rocksdb.WriteBatch;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.File;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 import static org.apache.kafka.streams.StreamsConfig.InternalConfig.IQ_CONSISTENCY_OFFSET_VECTOR_ENABLED;
@@ -348,6 +349,19 @@ public class RocksDBVersionedStore implements VersionedKeyValueStore<Bytes, byte
         return position;
     }
 
+
+    @Override
+    public void preInit(final StateStoreContext stateStoreContext) {
+        segmentStores.openExisting(stateStoreContext, observedStreamTime);
+        position = segmentStores.getPosition();
+        open = true;
+        consistencyEnabled = StreamsConfig.InternalConfig.getBoolean(
+                stateStoreContext.appConfigs(),
+                IQ_CONSISTENCY_OFFSET_VECTOR_ENABLED,
+                false
+        );
+    }
+
     @Override
     public void init(final StateStoreContext stateStoreContext, final StateStore root) {
         this.internalProcessorContext = ProcessorContextUtils.asInternalProcessorContext(stateStoreContext);
@@ -364,26 +378,22 @@ public class RocksDBVersionedStore implements VersionedKeyValueStore<Bytes, byte
 
         metricsRecorder.init(ProcessorContextUtils.metricsImpl(stateStoreContext), stateStoreContext.taskId());
 
-        final File positionCheckpointFile = new File(stateStoreContext.stateDir(), name() + ".position");
-        positionCheckpoint = new OffsetCheckpoint(positionCheckpointFile);
-        position = StoreQueryUtils.readPositionFromCheckpoint(positionCheckpoint);
-        segmentStores.setPosition(position);
-        segmentStores.openExisting(internalProcessorContext, observedStreamTime);
-
         // register and possibly restore the state from the logs
         stateStoreContext.register(
                 root,
                 (RecordBatchingStateRestoreCallback) RocksDBVersionedStore.this::restoreBatch,
-                () -> StoreQueryUtils.checkpointPosition(positionCheckpoint, position)
+                () -> { }
         );
+    }
 
-        open = true;
+    @Override
+    public void commit(final Map<TopicPartition, Long> changelogOffsets) {
+        segmentStores.commit(changelogOffsets);
+    }
 
-        consistencyEnabled = StreamsConfig.InternalConfig.getBoolean(
-                stateStoreContext.appConfigs(),
-                IQ_CONSISTENCY_OFFSET_VECTOR_ENABLED,
-                false
-        );
+    @Override
+    public Long committedOffset(final TopicPartition tp) {
+        return segmentStores.commitedOffset(tp);
     }
 
     // VisibleForTesting

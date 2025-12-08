@@ -17,7 +17,10 @@
 package org.apache.kafka.streams.state.internals;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.metrics.Sensor.RecordingLevel;
+import org.apache.kafka.common.serialization.Serde;
+import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.common.utils.Bytes;
 import org.apache.kafka.common.utils.Utils;
@@ -68,6 +71,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -99,6 +103,14 @@ public class RocksDBStore implements KeyValueStore<Bytes, byte[]>, BatchWritingS
     private static final long BLOCK_CACHE_SIZE = 50 * 1024 * 1024L;
     private static final long BLOCK_SIZE = 4096L;
     private static final int MAX_WRITE_BUFFERS = 3;
+    protected static final byte[] CHECKPOINT_CF = "checkpoint".getBytes(StandardCharsets.UTF_8);
+    private static final Serde<Long> LONG_SERDE = Serdes.Long();
+    private static final Serde<String> STRING_SERDE = Serdes.String();
+    private static final byte[] CHECKPOINT_STATE_KEY = STRING_SERDE.serializer().serialize(null, "state");
+    private static final byte[] CHECKPOINT_CLOSED_STATE = STRING_SERDE.serializer().serialize(null, "closed");
+    private static final byte[] CHECKPOINT_OPEN_STATE = STRING_SERDE.serializer().serialize(null, "open");
+    private static final byte[] CHECKPOINT_KEY = STRING_SERDE.serializer().serialize(null, "checkpoint");
+
     static final String DB_FILE_DIR = "rocksdb";
 
     final String name;
@@ -111,6 +123,7 @@ public class RocksDBStore implements KeyValueStore<Bytes, byte[]>, BatchWritingS
     RocksDB db;
     DBAccessor dbAccessor;
     ColumnFamilyAccessor cfAccessor;
+    ColumnFamilyAccessor checkpointCfAccessor;
 
     // the following option objects will be created in openDB and closed in the close() method
     private RocksDBGenericOptionsToDbOptionsColumnFamilyOptionsAdapter userSpecifiedOptions;
@@ -133,6 +146,7 @@ public class RocksDBStore implements KeyValueStore<Bytes, byte[]>, BatchWritingS
     protected StateStoreContext context;
     protected Position position;
     private OffsetCheckpoint positionCheckpoint;
+    private RocksDBManagedOffsets managedOffsets;
     private final AtomicBoolean initialized = new AtomicBoolean(false);
 
     public RocksDBStore(final String name,
@@ -163,14 +177,12 @@ public class RocksDBStore implements KeyValueStore<Bytes, byte[]>, BatchWritingS
         // open the DB dir
         metricsRecorder.init(metricsImpl(stateStoreContext), stateStoreContext.taskId());
         if (!open) {
-            preInit(stateStoreContext);
+            throw new IllegalStateException("Store " + name + " is not open");
         }
 
         addValueProvidersToMetricsRecorder();
 
-        final File positionCheckpointFile = new File(stateStoreContext.stateDir(), name() + ".position");
-        this.positionCheckpoint = new OffsetCheckpoint(positionCheckpointFile);
-        this.position = StoreQueryUtils.readPositionFromCheckpoint(positionCheckpoint);
+
 
         // value getter should always read directly from rocksDB
         // since it is only for values that are already flushed
@@ -178,7 +190,7 @@ public class RocksDBStore implements KeyValueStore<Bytes, byte[]>, BatchWritingS
         stateStoreContext.register(
             root,
             (RecordBatchingStateRestoreCallback) this::restoreBatch,
-            () -> StoreQueryUtils.checkpointPosition(positionCheckpoint, position)
+            () -> { }
         );
         consistencyEnabled = StreamsConfig.InternalConfig.getBoolean(
             stateStoreContext.appConfigs(),
@@ -192,7 +204,7 @@ public class RocksDBStore implements KeyValueStore<Bytes, byte[]>, BatchWritingS
     }
 
     @SuppressWarnings("unchecked")
-    void openDB(final Map<String, Object> configs, final File stateDir) {
+    final void openDB(final Map<String, Object> configs, final File stateDir) {
         // initialize the default rocksdb options
 
         final DBOptions dbOptions = new DBOptions();
@@ -253,6 +265,13 @@ public class RocksDBStore implements KeyValueStore<Bytes, byte[]>, BatchWritingS
         openRocksDB(dbOptions, columnFamilyOptions);
         dbAccessor = new DirectDBAccessor(db, fOptions, wOptions);
         open = true;
+        if (!checkpointIsOpen()) {
+            readOffsetFromDb();
+        } else {
+            this.managedOffsets = new RocksDBManagedOffsets();
+        }
+        this.position = managedOffsets.toPosition();
+        openCheckpointCF();
 
     }
 
@@ -288,10 +307,26 @@ public class RocksDBStore implements KeyValueStore<Bytes, byte[]>, BatchWritingS
                      final ColumnFamilyOptions columnFamilyOptions) {
         final List<ColumnFamilyHandle> columnFamilies = openRocksDB(
                 dbOptions,
-                new ColumnFamilyDescriptor(RocksDB.DEFAULT_COLUMN_FAMILY, columnFamilyOptions)
+                new ColumnFamilyDescriptor(RocksDB.DEFAULT_COLUMN_FAMILY, columnFamilyOptions),
+                new ColumnFamilyDescriptor(CHECKPOINT_CF, columnFamilyOptions)
         );
 
         cfAccessor = new SingleColumnFamilyAccessor(columnFamilies.get(0));
+        checkpointCfAccessor = new SingleColumnFamilyAccessor(columnFamilies.get(1));
+    }
+
+    private void readOffsetFromDb() {
+        try {
+            final byte[] rawCheckpoint = checkpointCfAccessor.get(dbAccessor, CHECKPOINT_KEY);
+            if (rawCheckpoint != null) {
+                final OffsetCheckpointBuffer checkpointBuffer = new OffsetCheckpointBuffer(Bytes.wrap(rawCheckpoint));
+                managedOffsets = new RocksDBManagedOffsets(checkpointBuffer.read());
+            } else {
+                managedOffsets = new RocksDBManagedOffsets();
+            }
+        } catch (final RocksDBException | IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     /**
@@ -644,15 +679,18 @@ public class RocksDBStore implements KeyValueStore<Bytes, byte[]>, BatchWritingS
     }
 
     @Override
-    public synchronized void flush() {
-        if (db == null) {
-            return;
+    public void commit(final Map<TopicPartition, Long> changelogOffsets) {
+        changelogOffsets.forEach((tp, offset) -> {
+            managedOffsets.put(tp, offset);
+        });
+    }
+
+    @Override
+    public Long committedOffset(final TopicPartition tp) {
+        if (managedOffsets.listAll().isEmpty()) {
+            return OffsetCheckpoint.OFFSET_UNKNOWN;
         }
-        try {
-            cfAccessor.flush(dbAccessor);
-        } catch (final RocksDBException e) {
-            throw new ProcessorStateException("Error while executing flush from store " + name, e);
-        }
+        return managedOffsets.get(tp);
     }
 
     @Override
@@ -675,11 +713,36 @@ public class RocksDBStore implements KeyValueStore<Bytes, byte[]>, BatchWritingS
         }
     }
 
+    private boolean checkpointIsOpen() {
+        try {
+            return Arrays.equals(checkpointCfAccessor.get(dbAccessor, CHECKPOINT_STATE_KEY), CHECKPOINT_OPEN_STATE);
+        } catch (final RocksDBException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private void openCheckpointCF() {
+        checkpointCfAccessor.put(dbAccessor, CHECKPOINT_STATE_KEY, CHECKPOINT_OPEN_STATE);
+    }
+
+    private void closeCheckpointCF() {
+        final OffsetCheckpointBuffer buffer = new OffsetCheckpointBuffer();
+        try {
+            buffer.write(managedOffsets.getOffsets());
+            checkpointCfAccessor.put(dbAccessor, CHECKPOINT_KEY, buffer.get().get());
+            checkpointCfAccessor.put(dbAccessor, CHECKPOINT_STATE_KEY, CHECKPOINT_CLOSED_STATE);
+        } catch (final IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     @Override
     public synchronized void close() {
         if (!open) {
             return;
         }
+
+        closeCheckpointCF();
 
         open = false;
         closeOpenIterators();
@@ -692,6 +755,11 @@ public class RocksDBStore implements KeyValueStore<Bytes, byte[]>, BatchWritingS
             metricsRecorder.removeValueProviders(name);
         }
 
+        try {
+            cfAccessor.flush(dbAccessor);
+        } catch (final RocksDBException e) {
+            throw new ProcessorStateException("Error while executing flush from store " + name, e);
+        }
         // Important: do not rearrange the order in which the below objects are closed!
         // Order of closing must follow: ColumnFamilyHandle > RocksDB > DBOptions > ColumnFamilyOptions
         cfAccessor.close();

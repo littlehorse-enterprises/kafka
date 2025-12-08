@@ -122,7 +122,7 @@ public class MeteredKeyValueStoreTest {
         metrics.config().recordLevel(Sensor.RecordingLevel.DEBUG);
         when(context.applicationId()).thenReturn(APPLICATION_ID);
         when(context.metrics()).thenReturn(
-            new StreamsMetricsImpl(metrics, "test", "processId", mockTime)
+            new StreamsMetricsImpl(metrics, "test", mockTime)
         );
         when(context.taskId()).thenReturn(taskId);
         when(context.changelogFor(STORE_NAME)).thenReturn(CHANGELOG_TOPIC);
@@ -373,6 +373,17 @@ public class MeteredKeyValueStoreTest {
         assertThat(storeMetrics(), not(empty()));
         metered.close();
         assertThat(storeMetrics(), empty());
+    }
+
+    @Test
+    public void shouldCloseOnPreInitPhase() {
+        setUpWithoutContext();
+        metrics.config().recordLevel(Sensor.RecordingLevel.DEBUG);
+        doNothing().when(inner).close();
+        metered.preInit(context);
+
+        assertThat(storeMetrics(), empty());
+        metered.close();
     }
 
     @Test

@@ -16,6 +16,7 @@
  */
 package org.apache.kafka.streams.state.internals;
 
+import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.streams.errors.ProcessorStateException;
 import org.apache.kafka.streams.processor.StateStoreContext;
 import org.apache.kafka.streams.query.Position;
@@ -58,6 +59,14 @@ abstract class AbstractSegments<S extends Segment> implements Segments<S> {
 
     public void setPosition(final Position position) {
         this.position = position;
+    }
+
+    public Position getPosition() {
+        final Position out = Position.emptyPosition();
+        for (final S value : segments.values()) {
+            out.merge(value.getPosition());
+        }
+        return out;
     }
 
     @Override
@@ -167,11 +176,26 @@ abstract class AbstractSegments<S extends Segment> implements Segments<S> {
     }
 
     @Override
+    public void commit(final Map<TopicPartition, Long> changelogOffsets) {
+        for (final S segment : segments.values()) {
+            segment.commit(changelogOffsets);
+        }
+    }
+
+    @Override
     public void close() {
         for (final S segment : segments.values()) {
             segment.close();
         }
         segments.clear();
+    }
+
+    @Override
+    public Long commitedOffset(final TopicPartition tp) {
+        return segments.values().stream().findFirst().stream()
+                .findFirst()
+                .map(s -> s.committedOffset(tp))
+                .orElse(null);
     }
 
     protected void cleanupExpiredSegments(final long streamTime) {

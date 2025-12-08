@@ -47,7 +47,6 @@ import org.apache.kafka.streams.state.internals.OffsetCheckpoint;
 import org.slf4j.Logger;
 
 import java.io.File;
-import java.io.IOException;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -1076,6 +1075,7 @@ public class TaskManager {
         try {
             if (canTryInitializeTask(task.id(), nowMs)) {
                 task.initializeIfNeeded();
+                task.clearTaskTimeout();
                 taskIdToBackoffRecord.remove(task.id());
                 stateUpdater.add(task);
             } else {
@@ -1089,6 +1089,14 @@ public class TaskManager {
                      lockException.getMessage());
             tasks.addPendingTasksToInit(Collections.singleton(task));
             updateOrCreateBackoffRecord(task.id(), nowMs);
+        } catch (final TimeoutException timeoutException) {
+            // A timeout can occur either during producer initialization OR while fetching committed offsets.
+            // Retry in the next iteration.
+            task.maybeInitTaskTimeoutOrThrow(nowMs, timeoutException);
+            tasks.addPendingTasksToInit(Collections.singleton(task));
+            updateOrCreateBackoffRecord(task.id(), nowMs);
+            log.info("Encountered timeout exception. Reattempting initialization in the next iteration. Error message was: {}",
+                     timeoutException.getMessage());
         }
     }
 
@@ -1372,13 +1380,9 @@ public class TaskManager {
         }
 
         for (final TaskId id : lockedTaskDirectoriesOfNonOwnedTasksAndClosedAndCreatedTasks) {
-            final File checkpointFile = stateDirectory.checkpointFileFor(id);
-            try {
-                if (checkpointFile.exists()) {
-                    taskOffsetSums.put(id, sumOfChangelogOffsets(id, new OffsetCheckpoint(checkpointFile).read()));
-                }
-            } catch (final IOException e) {
-                log.warn(String.format("Exception caught while trying to read checkpoint for task %s:", id), e);
+            final Map<TopicPartition, Long> commitedOffsetsForLocalTasks = stateDirectory.getCommitedOffsetsForLocalTasks(id);
+            if (!commitedOffsetsForLocalTasks.isEmpty()) {
+                taskOffsetSums.put(id, sumOfChangelogOffsets(id, commitedOffsetsForLocalTasks));
             }
         }
 

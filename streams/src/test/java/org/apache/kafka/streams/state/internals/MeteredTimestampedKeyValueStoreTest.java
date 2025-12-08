@@ -127,7 +127,7 @@ public class MeteredTimestampedKeyValueStoreTest {
         setUpWithoutContext();
         when(context.applicationId()).thenReturn(APPLICATION_ID);
         when(context.metrics())
-            .thenReturn(new StreamsMetricsImpl(metrics, "test", "processId", mockTime));
+            .thenReturn(new StreamsMetricsImpl(metrics, "test", mockTime));
         when(context.taskId()).thenReturn(taskId);
         when(context.changelogFor(STORE_NAME)).thenReturn(CHANGELOG_TOPIC);
         when(inner.name()).thenReturn(STORE_NAME);
@@ -143,6 +143,10 @@ public class MeteredTimestampedKeyValueStoreTest {
 
     private void init() {
         metered.init(context, metered);
+    }
+
+    private void preInit() {
+        metered.preInit(context);
     }
 
     @Test
@@ -163,6 +167,15 @@ public class MeteredTimestampedKeyValueStoreTest {
     public void shouldPassChangelogTopicNameToStateStoreSerde() {
         setUp();
         doShouldPassChangelogTopicNameToStateStoreSerde(CHANGELOG_TOPIC);
+    }
+
+    @Test
+    public void shouldCloseOnPreInitPhase() {
+        setUpWithoutContext();
+        metrics.config().recordLevel(Sensor.RecordingLevel.DEBUG);
+        doNothing().when(inner).close();
+        metered.preInit(context);
+        metered.close();
     }
 
     @Test

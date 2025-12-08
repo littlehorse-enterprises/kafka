@@ -469,6 +469,7 @@ public class StreamThreadStateStoreProviderTest {
             streamsMetrics,
             null
         );
+        topology.openStores(context);
         return new StreamTask(
             taskId,
             partitions,

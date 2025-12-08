@@ -341,6 +341,11 @@ public class MeteredVersionedKeyValueStore<K, V>
     }
 
     @Override
+    public void preInit(final StateStoreContext stateStoreContext) {
+        internal.preInit(stateStoreContext);
+    }
+
+    @Override
     public void init(final StateStoreContext stateStoreContext, final StateStore root) {
         internal.init(stateStoreContext, root);
     }

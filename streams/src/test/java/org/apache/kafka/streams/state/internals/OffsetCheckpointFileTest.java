@@ -42,14 +42,14 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-public class OffsetCheckpointTest {
+public class OffsetCheckpointFileTest {
 
     private final String topic = "topic";
 
     @Test
     public void testReadWrite() throws IOException {
         final File f = TestUtils.tempFile();
-        final OffsetCheckpoint checkpoint = new OffsetCheckpoint(f);
+        final OffsetCheckpointFile checkpoint = new OffsetCheckpointFile(f);
 
         try {
             final Map<TopicPartition, Long> offsets = new HashMap<>();
@@ -75,7 +75,7 @@ public class OffsetCheckpointTest {
     public void shouldNotWriteCheckpointWhenNoOffsets() throws IOException {
         // we do not need to worry about file name uniqueness since this file should not be created
         final File f = new File(TestUtils.tempDirectory().getAbsolutePath(), "kafka.tmp");
-        final OffsetCheckpoint checkpoint = new OffsetCheckpoint(f);
+        final OffsetCheckpointFile checkpoint = new OffsetCheckpointFile(f);
 
         checkpoint.write(Collections.emptyMap());
 
@@ -90,7 +90,7 @@ public class OffsetCheckpointTest {
     @Test
     public void shouldDeleteExistingCheckpointWhenNoOffsets() throws IOException {
         final File file = TestUtils.tempFile();
-        final OffsetCheckpoint checkpoint = new OffsetCheckpoint(file);
+        final OffsetCheckpointFile checkpoint = new OffsetCheckpointFile(file);
 
         final Map<TopicPartition, Long> offsets = Collections.singletonMap(new TopicPartition(topic, 0), 1L);
 
@@ -108,7 +108,7 @@ public class OffsetCheckpointTest {
     @Test
     public void shouldSkipInvalidOffsetsDuringRead() throws IOException {
         final File file = TestUtils.tempFile();
-        final OffsetCheckpoint checkpoint = new OffsetCheckpoint(file);
+        final OffsetCheckpointFile checkpoint = new OffsetCheckpointFile(file);
 
         try {
             final Map<TopicPartition, Long> offsets = new HashMap<>();
@@ -124,7 +124,7 @@ public class OffsetCheckpointTest {
     @Test
     public void shouldReadAndWriteSentinelOffset() throws IOException {
         final File f = TestUtils.tempFile();
-        final OffsetCheckpoint checkpoint = new OffsetCheckpoint(f);
+        final OffsetCheckpointFile checkpoint = new OffsetCheckpointFile(f);
         final long sentinelOffset = -4L;
 
         try {
@@ -142,7 +142,7 @@ public class OffsetCheckpointTest {
     @Test
     public void shouldThrowOnInvalidOffsetInWrite() throws IOException {
         final File f = TestUtils.tempFile();
-        final OffsetCheckpoint checkpoint = new OffsetCheckpoint(f);
+        final OffsetCheckpointFile checkpoint = new OffsetCheckpointFile(f);
 
         try {
             final Map<TopicPartition, Long> offsets = new HashMap<>();
@@ -161,7 +161,7 @@ public class OffsetCheckpointTest {
         final Map<TopicPartition, Long> offsetsToWrite = Collections.singletonMap(new TopicPartition(topic, 0), 0L);
 
         final File notExistedFile = new File("/not_existed_dir/not_existed_file");
-        final OffsetCheckpoint checkpoint = new OffsetCheckpoint(notExistedFile);
+        final OffsetCheckpointFile checkpoint = new OffsetCheckpointFile(notExistedFile);
         
         final IOException e = assertThrows(IOException.class, () -> checkpoint.write(offsetsToWrite));
         assertThat(e.getMessage(), containsString("No such file or directory"));

@@ -77,7 +77,7 @@ public class MeteredTimestampedWindowStoreTest {
 
     public void setUp() {
         final StreamsMetricsImpl streamsMetrics =
-            new StreamsMetricsImpl(metrics, "test", "processId", new MockTime());
+            new StreamsMetricsImpl(metrics, "test", new MockTime());
 
         context = new InternalMockProcessorContext<>(
             TestUtils.tempDirectory(),
@@ -91,7 +91,6 @@ public class MeteredTimestampedWindowStoreTest {
             taskId
         );
 
-        when(innerStoreMock.name()).thenReturn(STORE_NAME);
 
         store = new MeteredTimestampedWindowStore<>(
             innerStoreMock,
@@ -105,7 +104,7 @@ public class MeteredTimestampedWindowStoreTest {
 
     public void setUpWithoutContextName() {
         final StreamsMetricsImpl streamsMetrics =
-                new StreamsMetricsImpl(metrics, "test", "processId", new MockTime());
+                new StreamsMetricsImpl(metrics, "test", new MockTime());
 
         context = new InternalMockProcessorContext<>(
                 TestUtils.tempDirectory(),
@@ -175,6 +174,7 @@ public class MeteredTimestampedWindowStoreTest {
         final Deserializer<ValueAndTimestamp<String>> valueDeserializer = mock(Deserializer.class);
         @SuppressWarnings("unchecked")
         final Serializer<ValueAndTimestamp<String>> valueSerializer = mock(Serializer.class);
+        when(innerStoreMock.name()).thenReturn(STORE_NAME);
         when(keySerde.serializer()).thenReturn(keySerializer);
         when(keySerializer.serialize(topic, KEY)).thenReturn(KEY.getBytes());
         when(valueSerde.deserializer()).thenReturn(valueDeserializer);
@@ -205,6 +205,14 @@ public class MeteredTimestampedWindowStoreTest {
         store.init(context, store);
         store.close();
 
+        verify(innerStoreMock).close();
+    }
+
+    @Test
+    public void shouldCloseOnPreInitPhase() {
+        setUp();
+        store.preInit(context);
+        store.close();
         verify(innerStoreMock).close();
     }
 

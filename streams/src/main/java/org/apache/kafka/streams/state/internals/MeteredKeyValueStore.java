@@ -16,6 +16,7 @@
  */
 package org.apache.kafka.streams.state.internals;
 
+import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.metrics.Sensor;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serializer;
@@ -118,6 +119,11 @@ public class MeteredKeyValueStore<K, V>
         this.time = time != null ? time : Time.SYSTEM;
         this.keySerde = keySerde;
         this.valueSerde = valueSerde;
+    }
+
+    @Override
+    public void preInit(final StateStoreContext stateStoreContext) {
+        super.preInit(stateStoreContext);
     }
 
     @Override
@@ -388,6 +394,11 @@ public class MeteredKeyValueStore<K, V>
     }
 
     @Override
+    public void commit(final Map<TopicPartition, Long> changelogOffsets) {
+        super.commit(changelogOffsets);
+    }
+
+    @Override
     public long approximateNumEntries() {
         return wrapped().approximateNumEntries();
     }
@@ -397,7 +408,10 @@ public class MeteredKeyValueStore<K, V>
         try {
             wrapped().close();
         } finally {
-            streamsMetrics.removeAllStoreLevelSensorsAndMetrics(taskId.toString(), name());
+            // Streams metrics is null before calling StateStore#init
+            if (streamsMetrics != null) {
+                streamsMetrics.removeAllStoreLevelSensorsAndMetrics(taskId.toString(), name());
+            }
         }
     }
 

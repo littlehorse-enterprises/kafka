@@ -40,6 +40,8 @@ import static org.apache.kafka.streams.processor.internals.Task.State.CREATED;
 
 public abstract class AbstractTask implements Task {
     private static final long NO_DEADLINE = -1L;
+    protected static final long NO_OFFSET = -1;
+    protected static final int NO_PARTITION = -1;
 
     private Task.State state = CREATED;
     private long deadlineMs = NO_DEADLINE;
@@ -97,7 +99,6 @@ public abstract class AbstractTask implements Task {
         final Map<TopicPartition, Long> offsetSnapshot = stateMgr.changelogOffsets();
         if (StateManagerUtil.checkpointNeeded(enforceCheckpoint, offsetSnapshotSinceLastFlush, offsetSnapshot)) {
             // the state's current offset would be used to checkpoint
-            stateMgr.flush();
             stateMgr.checkpoint();
             offsetSnapshotSinceLastFlush = new HashMap<>(offsetSnapshot);
         }

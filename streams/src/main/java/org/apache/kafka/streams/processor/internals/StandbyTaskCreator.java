@@ -100,6 +100,8 @@ class StandbyTaskCreator {
                     dummyCache
                 );
 
+                topology.openStores(context);
+
                 createdTasks.add(createStandbyTask(taskId, partitions, topology, stateManager, context));
             } else {
                 log.trace(

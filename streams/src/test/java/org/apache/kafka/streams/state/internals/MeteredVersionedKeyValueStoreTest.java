@@ -110,7 +110,7 @@ public class MeteredVersionedKeyValueStoreTest {
     @BeforeEach
     public void setUp() {
         when(inner.name()).thenReturn(STORE_NAME);
-        when(context.metrics()).thenReturn(new StreamsMetricsImpl(metrics, "test", "processId", mockTime));
+        when(context.metrics()).thenReturn(new StreamsMetricsImpl(metrics, "test", mockTime));
         when(context.applicationId()).thenReturn(APPLICATION_ID);
         when(context.taskId()).thenReturn(TASK_ID);
 
@@ -153,6 +153,14 @@ public class MeteredVersionedKeyValueStoreTest {
         final String defaultChangelogTopicName = ProcessorStateManager.storeChangelogTopic(APPLICATION_ID, STORE_NAME, TASK_ID.topologyName());
         when(context.changelogFor(STORE_NAME)).thenReturn(null);
         doShouldPassChangelogTopicNameToStateStoreSerde(defaultChangelogTopicName);
+    }
+
+    @Test
+    public void shouldCloseOnPreInitPhase() {
+        store = newMeteredStore(inner);
+        store.preInit(context);
+        store.close();
+        verify(inner).close();
     }
 
     @SuppressWarnings("unchecked")

@@ -113,7 +113,7 @@ public class StandbyTaskTest {
 
     private final MockTime time = new MockTime();
     private final Metrics metrics = new Metrics(new MetricConfig().recordLevel(Sensor.RecordingLevel.DEBUG), time);
-    private final StreamsMetricsImpl streamsMetrics = new StreamsMetricsImpl(metrics, threadName, "processId", time);
+    private final StreamsMetricsImpl streamsMetrics = new StreamsMetricsImpl(metrics, threadName, time);
 
     private File baseDir;
     private StreamsConfig config;
@@ -225,7 +225,6 @@ public class StandbyTaskTest {
         task.initializeIfNeeded();
         task.maybeCheckpoint(true);
 
-        verify(stateManager).flush();
         verify(stateManager).checkpoint();
     }
 
@@ -246,14 +245,12 @@ public class StandbyTaskTest {
         task.maybeCheckpoint(false);  // this should not checkpoint
         assertEquals(Collections.singletonMap(partition, 11000L), task.offsetSnapshotSinceLastFlush);
 
-        verify(stateManager).flush();
         verify(stateManager).checkpoint();
     }
 
     @Test
     public void shouldFlushAndCheckpointStateManagerOnCommit() {
         when(stateManager.changelogOffsets()).thenReturn(Collections.emptyMap());
-        doNothing().when(stateManager).flush();
         when(stateManager.changelogOffsets())
                 .thenReturn(Collections.singletonMap(partition, 50L))
                 .thenReturn(Collections.singletonMap(partition, 11000L))
@@ -348,7 +345,6 @@ public class StandbyTaskTest {
         when(stateManager.changelogOffsets())
             .thenReturn(Collections.singletonMap(partition, 50L))
             .thenReturn(Collections.singletonMap(partition, 10100L));
-        doNothing().when(stateManager).flush();
         doNothing().when(stateManager).checkpoint();
 
         task = createStandbyTask();

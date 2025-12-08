@@ -116,7 +116,7 @@ public class MeteredWindowStoreTest {
     @BeforeEach
     public void setUp() {
         final StreamsMetricsImpl streamsMetrics =
-            new StreamsMetricsImpl(metrics, "test", "processId", new MockTime());
+            new StreamsMetricsImpl(metrics, "test", new MockTime());
         context = new InternalMockProcessorContext<>(
             TestUtils.tempDirectory(),
             Serdes.String(),
@@ -411,6 +411,13 @@ public class MeteredWindowStoreTest {
         assertThat(storeMetrics(), not(empty()));
         store.close();
         assertThat(storeMetrics(), empty());
+    }
+
+    @Test
+    public void shouldCloseOnPreInitPhase() {
+        doNothing().when(innerStoreMock).close();
+        store.preInit(context);
+        store.close();
     }
 
     @Test

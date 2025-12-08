@@ -64,7 +64,7 @@ public class ListValueStoreTest {
                 0,
                 new MockStreamsMetrics(new Metrics())));
         context.setTime(1L);
-
+        listStore.preInit(context);
         listStore.init(context, listStore);
     }
 

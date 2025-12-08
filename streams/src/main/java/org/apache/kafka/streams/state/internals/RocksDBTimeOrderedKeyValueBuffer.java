@@ -16,6 +16,7 @@
  */
 package org.apache.kafka.streams.state.internals;
 
+import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.serialization.ByteArraySerializer;
 import org.apache.kafka.common.serialization.BytesSerializer;
 import org.apache.kafka.common.serialization.Serde;
@@ -185,6 +186,11 @@ public class RocksDBTimeOrderedKeyValueBuffer<K, V> implements TimeOrderedKeyVal
     }
 
     @Override
+    public void preInit(final StateStoreContext stateStoreContext) {
+        store.preInit(stateStoreContext);
+    }
+
+    @Override
     public void init(final StateStoreContext stateStoreContext, final StateStore root) {
         store.init(stateStoreContext, root);
         iternalContext = ProcessorContextUtils.asInternalProcessorContext(stateStoreContext);
@@ -192,6 +198,16 @@ public class RocksDBTimeOrderedKeyValueBuffer<K, V> implements TimeOrderedKeyVal
         if (loggingEnabled) {
             changelogTopic = ProcessorContextUtils.changelogFor(stateStoreContext, name(), Boolean.TRUE);
         }
+    }
+
+    @Override
+    public void commit(final Map<TopicPartition, Long> changelogOffsets) {
+        store.commit(changelogOffsets);
+    }
+
+    @Override
+    public Long committedOffset(final TopicPartition tp) {
+        return store.committedOffset(tp);
     }
 
     @Override

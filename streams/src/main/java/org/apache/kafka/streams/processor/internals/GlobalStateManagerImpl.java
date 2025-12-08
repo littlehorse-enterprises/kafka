@@ -40,6 +40,7 @@ import org.apache.kafka.streams.processor.api.ProcessorContext;
 import org.apache.kafka.streams.processor.api.Record;
 import org.apache.kafka.streams.processor.internals.Task.TaskType;
 import org.apache.kafka.streams.state.internals.OffsetCheckpoint;
+import org.apache.kafka.streams.state.internals.OffsetCheckpointFile;
 import org.apache.kafka.streams.state.internals.RecordConverter;
 
 import org.slf4j.Logger;
@@ -97,7 +98,7 @@ public class GlobalStateManagerImpl implements GlobalStateManager {
         this.topology = topology;
         baseDir = stateDirectory.globalStateDir();
         storeToChangelogTopic = topology.storeToChangelogTopic();
-        checkpointFile = new OffsetCheckpoint(new File(baseDir, CHECKPOINT_FILE_NAME));
+        checkpointFile = new OffsetCheckpointFile(new File(baseDir, CHECKPOINT_FILE_NAME));
         checkpointFileCache = new HashMap<>();
 
         // Find non persistent store's topics
@@ -142,6 +143,7 @@ public class GlobalStateManagerImpl implements GlobalStateManager {
         for (final StateStore stateStore : topology.globalStateStores()) {
             final String sourceTopic = storeToChangelogTopic.get(stateStore.name());
             changelogTopics.add(sourceTopic);
+            stateStore.preInit(globalProcessorContext);
             stateStore.init(globalProcessorContext, stateStore);
         }
 

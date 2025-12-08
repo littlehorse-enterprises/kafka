@@ -130,6 +130,12 @@ public class StandbyTask extends AbstractTask implements Task {
     }
 
     @Override
+    public void revive() {
+        super.revive();
+        topology.openStores(processorContext);
+    }
+
+    @Override
     public void completeRestoration(final java.util.function.Consumer<Set<TopicPartition>> offsetResetter) {
         throw new IllegalStateException("Standby task " + id + " should never be completing restoration");
     }

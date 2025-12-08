@@ -160,6 +160,7 @@ public abstract class AbstractSessionBytesStoreTest {
                 new MockStreamsMetrics(new Metrics())));
         context.setTime(1L);
 
+        sessionStore.preInit(context);
         sessionStore.init(context, sessionStore);
     }
 
@@ -554,6 +555,7 @@ public abstract class AbstractSessionBytesStoreTest {
     public void shouldFetchExactKeys() {
         sessionStore.close();
         sessionStore = buildSessionStore(0x7a00000000000000L, Serdes.String(), Serdes.Long());
+        sessionStore.preInit(context);
         sessionStore.init(context, sessionStore);
 
         sessionStore.put(new Windowed<>("a", new SessionWindow(0, 0)), 1L);
@@ -610,6 +612,7 @@ public abstract class AbstractSessionBytesStoreTest {
     public void shouldBackwardFetchExactKeys() {
         sessionStore.close();
         sessionStore = buildSessionStore(0x7a00000000000000L, Serdes.String(), Serdes.Long());
+        sessionStore.preInit(context);
         sessionStore.init(context, sessionStore);
 
         sessionStore.put(new Windowed<>("a", new SessionWindow(0, 0)), 1L);
@@ -666,7 +669,7 @@ public abstract class AbstractSessionBytesStoreTest {
     public void shouldFetchAndIterateOverExactBinaryKeys() {
         final SessionStore<Bytes, String> sessionStore =
             buildSessionStore(RETENTION_PERIOD, Serdes.Bytes(), Serdes.String());
-
+        sessionStore.preInit(context);
         sessionStore.init(context, sessionStore);
 
         final Bytes key1 = Bytes.wrap(new byte[] {0});
@@ -705,7 +708,7 @@ public abstract class AbstractSessionBytesStoreTest {
     public void shouldBackwardFetchAndIterateOverExactBinaryKeys() {
         final SessionStore<Bytes, String> sessionStore =
             buildSessionStore(RETENTION_PERIOD, Serdes.Bytes(), Serdes.String());
-
+        sessionStore.preInit(context);
         sessionStore.init(context, sessionStore);
 
         final Bytes key1 = Bytes.wrap(new byte[] {0});
@@ -853,6 +856,7 @@ public abstract class AbstractSessionBytesStoreTest {
         final Time time = Time.SYSTEM;
         context.setTime(1L);
         context.setSystemTimeMs(time.milliseconds());
+        sessionStore.preInit(context);
         sessionStore.init(context, sessionStore);
 
         // Advance stream time by inserting record with large enough timestamp that records with timestamp 0 are expired

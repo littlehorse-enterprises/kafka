@@ -16,6 +16,7 @@
  */
 package org.apache.kafka.test;
 
+import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.IntegerDeserializer;
 import org.apache.kafka.common.serialization.Serializer;
@@ -28,7 +29,9 @@ import org.apache.kafka.streams.state.KeyValueIterator;
 import org.apache.kafka.streams.state.KeyValueStore;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class MockKeyValueStore implements KeyValueStore<Object, Object> {
@@ -44,6 +47,7 @@ public class MockKeyValueStore implements KeyValueStore<Object, Object> {
     public boolean closed = true;
     public final ArrayList<Integer> keys = new ArrayList<>();
     public final ArrayList<byte[]> values = new ArrayList<>();
+    private final Map<TopicPartition, Long> changelogOffsets = new HashMap<>();
 
     public MockKeyValueStore(final String name,
                              final boolean persistent) {
@@ -73,6 +77,16 @@ public class MockKeyValueStore implements KeyValueStore<Object, Object> {
     public void flush() {
         instanceLastFlushCount.set(GLOBAL_FLUSH_COUNTER.getAndIncrement());
         flushed = true;
+    }
+
+    @Override
+    public void commit(final Map<TopicPartition, Long> changelogOffsets) {
+        this.changelogOffsets.putAll(changelogOffsets);
+    }
+
+    @Override
+    public Long committedOffset(final TopicPartition partition) {
+        return changelogOffsets.get(partition);
     }
 
     public int getLastFlushCount() {

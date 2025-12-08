@@ -455,6 +455,7 @@ public abstract class AbstractRocksDBWindowStoreTest extends AbstractWindowBytes
         windowStore.close();
         windowStore = buildWindowStore(RETENTION_PERIOD, WINDOW_SIZE, true, Serdes.Integer(),
                 Serdes.String());
+        windowStore.preInit(context);
         windowStore.init(context, windowStore);
 
         context.setTime(0L);
@@ -551,6 +552,7 @@ public abstract class AbstractRocksDBWindowStoreTest extends AbstractWindowBytes
         windowStore.close();
 
         windowStore = buildWindowStore(RETENTION_PERIOD, WINDOW_SIZE, false, Serdes.Integer(), Serdes.String());
+        windowStore.preInit(context);
         windowStore.init(context, windowStore);
 
         // put something in the store to advance its stream time and expire the old segments
@@ -608,6 +610,7 @@ public abstract class AbstractRocksDBWindowStoreTest extends AbstractWindowBytes
                 false,
                 Serdes.Integer(),
                 Serdes.String());
+        windowStore.preInit(context);
         windowStore.init(context, windowStore);
 
         // For all tests, for WindowStore actualFrom is computed using observedStreamTime - retention + 1.

@@ -28,6 +28,7 @@ import org.apache.kafka.streams.processor.StateStore;
 import org.apache.kafka.streams.processor.TaskId;
 import org.apache.kafka.streams.processor.internals.StateDirectory.TaskDirectory;
 import org.apache.kafka.streams.state.internals.OffsetCheckpoint;
+import org.apache.kafka.streams.state.internals.OffsetCheckpointFile;
 import org.apache.kafka.test.MockKeyValueStore;
 import org.apache.kafka.test.TestUtils;
 
@@ -243,7 +244,7 @@ public class StateDirectoryTest {
         assertTrue(directory.directoryForTaskIsEmpty(taskId));
 
         // after writing checkpoint, it should still be empty
-        final OffsetCheckpoint checkpointFile = new OffsetCheckpoint(new File(directory.getOrCreateDirectoryForTask(taskId), CHECKPOINT_FILE_NAME));
+        final OffsetCheckpoint checkpointFile = new OffsetCheckpointFile(new File(directory.getOrCreateDirectoryForTask(taskId), CHECKPOINT_FILE_NAME));
         assertTrue(directory.directoryForTaskIsEmpty(taskId));
 
         checkpointFile.write(Collections.singletonMap(new TopicPartition("topic", 0), 0L));

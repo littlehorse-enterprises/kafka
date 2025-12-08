@@ -70,6 +70,7 @@ public class ChangeLoggingVersionedKeyValueBytesStoreTest {
 
         context = mockContext();
         context.setTime(0);
+        store.preInit(context);
         store.init(context, store);
     }
 

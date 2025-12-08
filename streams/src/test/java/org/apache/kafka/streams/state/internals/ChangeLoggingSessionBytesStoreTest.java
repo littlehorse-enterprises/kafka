@@ -60,6 +60,7 @@ public class ChangeLoggingSessionBytesStoreTest {
     @BeforeEach
     public void setUp() {
         store = new ChangeLoggingSessionBytesStore(inner);
+        store.preInit(context);
         store.init(context, store);
     }
 

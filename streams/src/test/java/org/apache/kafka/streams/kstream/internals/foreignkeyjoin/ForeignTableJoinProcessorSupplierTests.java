@@ -77,6 +77,7 @@ public class ForeignTableJoinProcessorSupplierTests {
         ).get();
         stateStore = storeBuilder.build();
         context.addStateStore(stateStore);
+        stateStore.preInit(context);
         stateStore.init(context, stateStore);
         processor.init(context);
     }

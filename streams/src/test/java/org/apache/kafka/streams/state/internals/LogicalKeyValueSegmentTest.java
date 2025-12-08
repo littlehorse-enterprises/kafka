@@ -64,12 +64,14 @@ public class LogicalKeyValueSegmentTest {
     @BeforeEach
     public void setUp() {
         physicalStore = new RocksDBStore(STORE_NAME, DB_FILE_DIR, new RocksDBMetricsRecorder(METRICS_SCOPE, STORE_NAME), false);
-        physicalStore.init(new InternalMockProcessorContext<>(
-            TestUtils.tempDirectory(),
-            Serdes.String(),
-            Serdes.String(),
-            new StreamsConfig(StreamsTestUtils.getStreamsConfig())
-        ), physicalStore);
+        final InternalMockProcessorContext<Object, Object> context = new InternalMockProcessorContext<>(
+                TestUtils.tempDirectory(),
+                Serdes.String(),
+                Serdes.String(),
+                new StreamsConfig(StreamsTestUtils.getStreamsConfig())
+        );
+        physicalStore.preInit(context);
+        physicalStore.init(context, physicalStore);
 
         segment0 = new LogicalKeyValueSegment(0, "segment-0", physicalStore);
         segment1 = new LogicalKeyValueSegment(1, "segment-1", physicalStore);

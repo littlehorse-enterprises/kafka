@@ -140,6 +140,7 @@ public abstract class AbstractRocksDBSegmentedBytesStoreTest<S extends Segment> 
             new MockRecordCollector(),
             new ThreadCache(new LogContext("testCache "), 0, new MockStreamsMetrics(new Metrics()))
         );
+        bytesStore.preInit(context);
         bytesStore.init(context, bytesStore);
     }
 
@@ -422,6 +423,7 @@ public abstract class AbstractRocksDBSegmentedBytesStoreTest<S extends Segment> 
 
         bytesStore = getBytesStore();
 
+        bytesStore.preInit(context);
         bytesStore.init(context, bytesStore);
         final List<KeyValue<Windowed<String>, Long>> results = toListAndCloseIterator(bytesStore.fetch(Bytes.wrap(key.getBytes()), 0L, 60_000L));
         assertThat(
@@ -456,6 +458,7 @@ public abstract class AbstractRocksDBSegmentedBytesStoreTest<S extends Segment> 
 
         bytesStore = getBytesStore();
 
+        bytesStore.preInit(context);
         bytesStore.init(context, bytesStore);
         final List<KeyValue<Windowed<String>, Long>> results = toListAndCloseIterator(bytesStore.fetch(Bytes.wrap(key.getBytes()), 0L, 60_000L));
         assertThat(
@@ -572,13 +575,14 @@ public abstract class AbstractRocksDBSegmentedBytesStoreTest<S extends Segment> 
                 dir,
                 Serdes.String(),
                 Serdes.String(),
-                new StreamsMetricsImpl(new Metrics(), "mock", "processId", new MockTime()),
+                new StreamsMetricsImpl(new Metrics(), "mock", new MockTime()),
                 new StreamsConfig(props),
                 MockRecordCollector::new,
                 new ThreadCache(new LogContext("testCache "), 0, new MockStreamsMetrics(new Metrics())),
                 Time.SYSTEM
         );
         bytesStore = getBytesStore();
+        bytesStore.preInit(context);
         bytesStore.init(context, bytesStore);
         // 0 segments initially.
         assertEquals(0, bytesStore.getSegments().size());
@@ -612,13 +616,14 @@ public abstract class AbstractRocksDBSegmentedBytesStoreTest<S extends Segment> 
                 dir,
                 Serdes.String(),
                 Serdes.String(),
-                new StreamsMetricsImpl(new Metrics(), "mock", "processId", new MockTime()),
+                new StreamsMetricsImpl(new Metrics(), "mock", new MockTime()),
                 new StreamsConfig(props),
                 MockRecordCollector::new,
                 new ThreadCache(new LogContext("testCache "), 0, new MockStreamsMetrics(new Metrics())),
                 Time.SYSTEM
         );
         bytesStore = getBytesStore();
+        bytesStore.preInit(context);
         bytesStore.init(context, bytesStore);
         // 0 segments initially.
         assertEquals(0, bytesStore.getSegments().size());
@@ -654,13 +659,14 @@ public abstract class AbstractRocksDBSegmentedBytesStoreTest<S extends Segment> 
                 dir,
                 Serdes.String(),
                 Serdes.String(),
-                new StreamsMetricsImpl(new Metrics(), "mock", "processId", new MockTime()),
+                new StreamsMetricsImpl(new Metrics(), "mock", new MockTime()),
                 new StreamsConfig(props),
                 MockRecordCollector::new,
                 new ThreadCache(new LogContext("testCache "), 0, new MockStreamsMetrics(new Metrics())),
                 Time.SYSTEM
         );
         bytesStore = getBytesStore();
+        bytesStore.preInit(context);
         bytesStore.init(context, bytesStore);
         // 0 segments initially.
         assertEquals(0, bytesStore.getSegments().size());
@@ -698,13 +704,14 @@ public abstract class AbstractRocksDBSegmentedBytesStoreTest<S extends Segment> 
                 dir,
                 Serdes.String(),
                 Serdes.String(),
-                new StreamsMetricsImpl(new Metrics(), "mock", "processId", new MockTime()),
+                new StreamsMetricsImpl(new Metrics(), "mock", new MockTime()),
                 new StreamsConfig(props),
                 MockRecordCollector::new,
                 new ThreadCache(new LogContext("testCache "), 0, new MockStreamsMetrics(new Metrics())),
                 Time.SYSTEM
         );
         bytesStore = getBytesStore();
+        bytesStore.preInit(context);
         bytesStore.init(context, bytesStore);
         bytesStore.restoreAllInternal(getChangelogRecordsWithoutHeaders());
         assertThat(bytesStore.getPosition(), is(Position.emptyPosition()));
@@ -822,6 +829,7 @@ public abstract class AbstractRocksDBSegmentedBytesStoreTest<S extends Segment> 
         );
         final Time time = Time.SYSTEM;
         context.setSystemTimeMs(time.milliseconds());
+        bytesStore.preInit(context);
         bytesStore.init(context, bytesStore);
 
         // write a record to advance stream time, with a high enough timestamp

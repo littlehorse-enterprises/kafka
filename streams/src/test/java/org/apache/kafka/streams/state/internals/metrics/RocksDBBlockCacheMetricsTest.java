@@ -64,6 +64,7 @@ public class RocksDBBlockCacheMetricsTest {
     }
 
     static void withStore(final RocksDBStore store, final StateStoreContext context, final Runnable function) {
+        store.preInit(context);
         store.init(context, store);
         try {
             function.run();

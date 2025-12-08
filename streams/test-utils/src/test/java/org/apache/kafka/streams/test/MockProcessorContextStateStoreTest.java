@@ -183,6 +183,7 @@ public class MockProcessorContextStateStoreTest {
                 when(internalProcessorContext.stateDir()).thenReturn(stateDir);
                 when(internalProcessorContext.metrics()).thenReturn((StreamsMetricsImpl) context.metrics());
                 when(internalProcessorContext.appConfigs()).thenReturn(context.appConfigs());
+                store.preInit(internalProcessorContext);
                 store.init(internalProcessorContext, store);
                 store.close();
             }

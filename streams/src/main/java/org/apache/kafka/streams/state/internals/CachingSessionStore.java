@@ -16,6 +16,7 @@
  */
 package org.apache.kafka.streams.state.internals;
 
+import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.utils.Bytes;
 import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.kstream.Windowed;
@@ -34,6 +35,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.LinkedList;
+import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Objects;
 
@@ -67,6 +69,11 @@ class CachingSessionStore
         this.keySchema = new SessionKeySchema();
         this.cacheFunction = new SegmentedCacheFunction(keySchema, segmentInterval);
         this.maxObservedTimestamp = RecordQueue.UNKNOWN;
+    }
+
+    @Override
+    public void preInit(final StateStoreContext stateStoreContext) {
+        super.preInit(stateStoreContext);
     }
 
     @Override
@@ -318,6 +325,11 @@ class CachingSessionStore
     public void flush() {
         internalContext.cache().flush(cacheName);
         wrapped().flush();
+    }
+
+    @Override
+    public void commit(final Map<TopicPartition, Long> changelogOffsets) {
+        wrapped().commit(changelogOffsets);
     }
 
     @Override
