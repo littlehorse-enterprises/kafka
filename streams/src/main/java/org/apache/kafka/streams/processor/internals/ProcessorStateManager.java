@@ -261,7 +261,11 @@ public class ProcessorStateManager implements StateManager {
                     final TopicPartition changelogPartition = getStorePartition(store.name());
                     final StateStore maybeWrappedStore = LegacyCheckpointingStateStore.maybeWrapStore(
                             store, eosEnabled, Set.of(changelogPartition), stateDirectory, taskId, logPrefix);
-                    maybeWrappedStore.init(processorContext, maybeWrappedStore);
+                    try {
+                        maybeWrappedStore.init(processorContext, maybeWrappedStore);
+                    } catch (final ProcessorStateException e) {
+                        throw new TaskCorruptedException(Collections.singleton(taskId));
+                    }
                     storesToMigrate.put(changelogPartition, maybeWrappedStore);
                 } else {
                     final StateStore maybeWrappedStore = LegacyCheckpointingStateStore.maybeWrapStore(
