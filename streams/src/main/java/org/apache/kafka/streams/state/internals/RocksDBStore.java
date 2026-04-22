@@ -271,6 +271,7 @@ public class RocksDBStore implements KeyValueStore<Bytes, byte[]>, BatchWritingS
                 throw new ProcessorStateException(fatalMessage, fatal);
             }
         } catch (final RuntimeException e) {
+            log.error("Error while opening RocksDB store {}. Attempting to close any opened resources before propagating the exception.", name, e);
             closeNativeResources();
             throw e;
         }
