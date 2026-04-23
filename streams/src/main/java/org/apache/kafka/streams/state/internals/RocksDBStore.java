@@ -250,9 +250,9 @@ public class RocksDBStore implements KeyValueStore<Bytes, byte[]>, BatchWritingS
         // with the measurements from Rocks DB
         setupStatistics(configs, dbOptions);
         try {
+            openRocksDB(dbOptions, columnFamilyOptions);
+            dbAccessor = new DirectDBAccessor(db, fOptions, wOptions);
             try {
-                openRocksDB(dbOptions, columnFamilyOptions);
-                dbAccessor = new DirectDBAccessor(db, fOptions, wOptions);
                 final Position existingPositionOrEmpty = cfAccessor.open(dbAccessor, !eosEnabled);
                 if (position == null) {
                     position = existingPositionOrEmpty;
@@ -271,7 +271,6 @@ public class RocksDBStore implements KeyValueStore<Bytes, byte[]>, BatchWritingS
                 throw new ProcessorStateException(fatalMessage, fatal);
             }
         } catch (final RuntimeException e) {
-            log.error("Error while opening RocksDB store {}.", name, e);
             closeNativeResources();
             throw e;
         }
